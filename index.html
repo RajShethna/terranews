@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,200..700;1,6..72,200..500&display=swap" rel="stylesheet" />
+<style>
+html,body{margin:0;padding:0;background:#f7f4ed;overflow-x:hidden;width:100%;-webkit-text-size-adjust:100%}
+*{box-sizing:border-box;min-width:0}
+img,svg,canvas,video{max-width:100%}
+/* mobile: drop the anchor nav, keep logo + primary action on one row */
+@media(max-width:760px){
+  #hdr-nav{display:none!important}
+  #hdr-tag{display:none!important}
+  #hdr-cta{margin-left:auto!important}
+}
+/* comfortable tap targets on touch devices */
+@media(pointer:coarse){
+  #hdr-cta{padding:13px 18px!important}
+  .faq-row{padding-top:22px!important;padding-bottom:22px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important}
+}
+a{color:#0f5c4a;text-decoration:none}
+a:hover{color:#18856a}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.3)}}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</helmet>
+
+<div style="background:#f7f4ed;color:#14181d;font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden">
+
+  <div style="position:sticky;top:0;z-index:40;background:rgba(247,244,237,.94);backdrop-filter:blur(10px);border-bottom:1px solid #14181d">
+    <div style="max-width:1200px;margin:0 auto;padding:12px clamp(14px,4vw,30px);display:flex;align-items:center;gap:clamp(12px,3vw,26px)">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <span style="font-family:'Newsreader',serif;font-weight:600;font-size:23px;letter-spacing:-.01em">TERRA</span>
+        <span id="hdr-tag" style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#6d7683">The news globe</span>
+      </div>
+      <div id="hdr-nav" style="display:flex;gap:20px;margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase">
+        <a href="#how" style="color:#4a5462">How it works</a>
+        <a href="#features" style="color:#4a5462">Instruments</a>
+        <a href="#method" style="color:#4a5462">Method</a>
+        <a href="#faq" style="color:#4a5462">FAQ</a>
+      </div>
+      <a id="hdr-cta" href="globe.html" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#f7f4ed;background:#14181d;padding:10px 16px;border-radius:2px;white-space:nowrap;flex:none" style-hover="background:#0f5c4a;color:#f7f4ed">Open the globe →</a>
+    </div>
+  </div>
+
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(22px,5vw,34px) clamp(14px,4vw,30px) 0">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 20px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#6d7683;padding-bottom:10px;border-bottom:1px solid #c9c2b2">
+      <span>Free · No account · No paywall</span>
+      <span>{{ dateLabel }}</span>
+      <span>Multi-source · reverse-chronological</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:clamp(30px,5vw,48px);padding:clamp(30px,6vw,44px) 0 clamp(32px,6vw,46px);border-bottom:3px double #14181d;align-items:center">
+      <div>
+        <h1 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(38px,9.4vw,74px);line-height:1.02;letter-spacing:-.028em;margin:0;text-wrap:balance">Spin the world.<br />Read what is <span style="font-style:italic;font-weight:300;color:#0f5c4a">actually</span><br />happening.</h1>
+        <div style="width:78px;height:2px;background:#14181d;margin:26px 0 22px"></div>
+        <p style="font-family:'Newsreader',serif;font-size:clamp(17px,4.3vw,21px);line-height:1.5;color:#37414d;margin:0;max-width:31em;text-wrap:pretty">An interactive news globe. Click any city or country and get the current story, the history behind it, every source it rests on — and the threads connecting it to what is unfolding elsewhere.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:30px">
+          <a href="globe.html" style="background:#0f5c4a;color:#f7f4ed;font-weight:500;font-size:15.5px;padding:15px 26px;border-radius:2px;display:inline-flex;align-items:center;justify-content:center;gap:10px;flex:1 1 auto;min-width:190px" style-hover="background:#14181d;color:#f7f4ed">Open the globe <span style="font-family:'IBM Plex Mono',monospace">→</span></a>
+          <a href="#how" style="border:1px solid #14181d;color:#14181d;font-size:15.5px;padding:15px 24px;border-radius:2px;text-align:center;flex:1 1 auto;min-width:190px" style-hover="background:#14181d;color:#f7f4ed">See how it works</a>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:clamp(18px,5vw,34px);margin-top:34px;padding-top:22px;border-top:1px solid #c9c2b2;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#6d7683">
+          <div><span style="display:block;font-family:'Newsreader',serif;font-size:clamp(26px,6vw,30px);letter-spacing:-.02em;color:#14181d;text-transform:none">37</span>locations mapped</div>
+          <div><span style="display:block;font-family:'Newsreader',serif;font-size:clamp(26px,6vw,30px);letter-spacing:-.02em;color:#14181d;text-transform:none">8</span>story categories</div>
+          <div><span style="display:block;font-family:'Newsreader',serif;font-size:clamp(26px,6vw,30px);letter-spacing:-.02em;color:#14181d;text-transform:none">3</span>sources per story, minimum</div>
+        </div>
+      </div>
+
+      <div style="background:#05070d;border-radius:3px;padding:clamp(14px,4vw,20px) clamp(14px,4vw,20px) 16px;box-shadow:0 24px 60px rgba(20,24,29,.22);min-width:0">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6f86a6;margin-bottom:12px">
+          <span style="display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:50%;background:#5fd8b4;box-shadow:0 0 8px #5fd8b4;animation:pulseDot 2s infinite"></span>Terra · live</span>
+          <span>Drag to spin · click a marker</span>
+        </div>
+        <canvas ref="{{ heroCanvas }}" style="width:100%;aspect-ratio:1;display:block;cursor:grab;touch-action:none"></canvas>
+        <div style="margin-top:12px;border-top:1px solid rgba(120,160,210,.14);padding-top:13px;min-height:100px">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6f86a6;display:flex;align-items:center;gap:8px">
+            <span style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ selColor }};box-shadow:0 0 8px {{ selColor }}"></span>{{ selMeta }}
+          </div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;color:#eef4fb;margin-top:7px">{{ selName }}</div>
+          <div style="font-family:'Newsreader',serif;font-size:16px;line-height:1.42;color:#b6c6dc;margin-top:5px;text-wrap:pretty">{{ selHeadline }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-bottom:1px solid #c9c2b2;overflow:hidden;padding:11px 0;background:#efeade">
+    <div style="display:flex;width:max-content;animation:ticker 52s linear infinite">
+      <sc-for list="{{ tickerItems }}" as="t" hint-placeholder-count="14">
+        <div style="display:flex;align-items:center;gap:9px;padding:0 20px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#5b6472;white-space:nowrap">
+          <span style="width:6px;height:6px;border-radius:1px;flex:none;background:{{ t.color }}"></span>{{ t.label }}
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div id="how" style="max-width:1200px;margin:0 auto;padding:clamp(46px,9vw,80px) clamp(14px,4vw,30px) 0">
+    <div style="display:flex;align-items:baseline;gap:clamp(10px,3vw,16px);border-bottom:1px solid #14181d;padding-bottom:12px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#0f5c4a">01</span>
+      <h2 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(26px,6.4vw,38px);letter-spacing:-.02em;margin:0">Three moves from a spinning planet to a sourced story</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,255px),1fr));gap:1px;background:#c9c2b2">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+        <div style="background:#f7f4ed;padding:clamp(22px,5vw,30px) clamp(20px,4.5vw,28px) clamp(26px,5vw,34px)">
+          <div style="font-family:'Newsreader',serif;font-size:clamp(34px,8vw,42px);font-weight:300;color:#0f5c4a;line-height:1">{{ s.num }}</div>
+          <div style="font-weight:500;font-size:19px;margin-top:14px">{{ s.title }}</div>
+          <div style="font-family:'Newsreader',serif;font-size:17px;line-height:1.55;color:#4a5462;margin-top:9px;text-wrap:pretty">{{ s.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div id="features" style="max-width:1200px;margin:0 auto;padding:clamp(44px,8vw,74px) clamp(14px,4vw,30px) 0">
+    <div style="display:flex;align-items:baseline;gap:clamp(10px,3vw,16px);border-bottom:1px solid #14181d;padding-bottom:12px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#0f5c4a">02</span>
+      <h2 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(26px,6.4vw,38px);letter-spacing:-.02em;margin:0">Every instrument, unlocked on day one</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,235px),1fr));gap:1px;background:#c9c2b2;border-bottom:1px solid #c9c2b2">
+      <sc-for list="{{ features }}" as="f" hint-placeholder-count="12">
+        <div style="background:#f7f4ed;padding:24px 24px 26px" style-hover="background:#efeade">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:8px;height:8px;border-radius:1px;flex:none;background:{{ f.color }}"></span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#6d7683">{{ f.tag }}</span>
+          </div>
+          <div style="font-weight:500;font-size:17.5px;margin-top:13px">{{ f.title }}</div>
+          <div style="font-size:14.5px;line-height:1.55;color:#4a5462;margin-top:7px;text-wrap:pretty">{{ f.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div id="method" style="max-width:1200px;margin:0 auto;padding:clamp(44px,8vw,74px) clamp(14px,4vw,30px) 0">
+    <div style="display:flex;align-items:baseline;gap:clamp(10px,3vw,16px);border-bottom:1px solid #14181d;padding-bottom:12px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#0f5c4a">03</span>
+      <h2 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(26px,6.4vw,38px);letter-spacing:-.02em;margin:0">We show the sourcing, not just the story</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:clamp(30px,5vw,52px);padding-top:34px">
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <sc-for list="{{ method }}" as="m" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:#0f5c4a;padding-top:6px">{{ m.k }}</span>
+            <div>
+              <div style="font-weight:500;font-size:18px">{{ m.title }}</div>
+              <div style="font-family:'Newsreader',serif;font-size:17px;line-height:1.55;color:#4a5462;margin-top:5px;text-wrap:pretty">{{ m.body }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#05070d;border-radius:3px;overflow:hidden;align-self:start;box-shadow:0 18px 44px rgba(20,24,29,.18)">
+        <div style="padding:11px 18px;border-bottom:1px solid rgba(120,160,210,.14);font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:#6f86a6;display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:space-between">
+          <span>Sample entry</span><span style="color:#4f6382">as it appears in app</span>
+        </div>
+        <div style="padding:clamp(18px,4.5vw,24px)">
+          <div style="display:flex;align-items:center;gap:9px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#5fd8b4">Kenya</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#e5654d;border:1px solid rgba(229,101,77,.4);border-radius:3px;padding:2px 6px">MAJOR</span>
+          </div>
+          <div style="font-weight:700;font-size:clamp(22px,5.5vw,26px);color:#eef4fb;margin-top:7px;letter-spacing:-.01em">Nairobi</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#6f86a6;margin-top:3px">East Africa · 1.29°S, 36.82°E</div>
+          <div style="height:1px;background:rgba(120,160,210,.14);margin:20px 0"></div>
+          <div style="display:flex;align-items:center;gap:9px">
+            <span style="width:8px;height:8px;border-radius:1px;background:#7aa8e8"></span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6f86a6">Business · 2 days ago</span>
+          </div>
+          <div style="font-family:'Newsreader',serif;font-size:19.5px;line-height:1.35;color:#e6eef8;margin-top:10px;text-wrap:pretty">Regional data-centre buildout clears its final grid-capacity review</div>
+          <div style="font-family:'Newsreader',serif;font-size:16px;line-height:1.55;color:#9fb4d0;margin-top:10px;text-wrap:pretty">Contested on water use since 2024. Two outlets report the same approval; a third adds an unresolved county-level objection — noted, not smoothed over.</div>
+          <div style="margin-top:20px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:#6f86a6">Source balance</div>
+          <div style="display:flex;gap:3px;margin-top:8px;height:6px">
+            <div style="flex:2;background:#5fd8b4"></div>
+            <div style="flex:2;background:#7aa8e8"></div>
+            <div style="flex:1;background:#e5b45f"></div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:9px;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.08em;color:#6f86a6">
+            <span>Wire</span><span>National</span><span>Local</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(44px,8vw,74px) clamp(14px,4vw,30px) 0">
+    <div style="background:#14181d;color:#f7f4ed;border-radius:3px;padding:clamp(26px,6vw,44px) clamp(20px,5vw,46px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,285px),1fr));gap:clamp(28px,5vw,44px);align-items:center">
+      <div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:#5fd8b4">The pledge</div>
+        <h2 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(26px,6.4vw,38px);line-height:1.12;letter-spacing:-.02em;margin:14px 0 0">No tiers, no trial, no card. The whole globe, for everyone.</h2>
+        <p style="font-family:'Newsreader',serif;font-size:clamp(16px,4.1vw,18px);line-height:1.55;color:#aab4c2;margin:16px 0 0;max-width:34em;text-wrap:pretty">The geography of the news should not sit behind a paywall. Every instrument — arcs, heat map, time machine, source balance, AI brief — is available to every visitor, signed in or not.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ pledge }}" as="p" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(247,244,237,.14);padding-bottom:11px">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5fd8b4">✓</span>
+            <span style="font-size:15.5px;color:#e6eaf0">{{ p }}</span>
+          </div>
+        </sc-for>
+        <a href="globe.html" style="margin-top:10px;background:#5fd8b4;color:#05070d;font-weight:500;font-size:15.5px;padding:15px 22px;border-radius:2px;text-align:center" style-hover="background:#8ee9cd;color:#05070d">Open the globe →</a>
+      </div>
+    </div>
+  </div>
+
+  <div id="faq" style="max-width:1200px;margin:0 auto;padding:clamp(44px,8vw,74px) clamp(14px,4vw,30px) 0">
+    <div style="display:flex;align-items:baseline;gap:clamp(10px,3vw,16px);border-bottom:1px solid #14181d;padding-bottom:12px">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#0f5c4a">04</span>
+      <h2 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(26px,6.4vw,38px);letter-spacing:-.02em;margin:0">Questions, answered plainly</h2>
+    </div>
+    <sc-for list="{{ faqs }}" as="q" hint-placeholder-count="6">
+      <div onClick="{{ q.onClick }}" class="faq-row" style="border-bottom:1px solid #c9c2b2;padding:20px 6px;cursor:pointer" style-hover="background:#efeade">
+        <div style="display:flex;align-items:baseline;gap:14px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#0f5c4a;width:14px;flex:none">{{ q.sign }}</span>
+          <div style="font-family:'Newsreader',serif;font-size:clamp(18px,4.7vw,22px);line-height:1.32;text-wrap:pretty">{{ q.q }}</div>
+        </div>
+        <sc-if value="{{ q.open }}" hint-placeholder-val="{{ false }}">
+          <div style="font-family:'Newsreader',serif;font-size:clamp(16px,4.2vw,17.5px);line-height:1.6;color:#4a5462;margin:10px 0 0 28px;max-width:62em;text-wrap:pretty">{{ q.a }}</div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="max-width:1200px;margin:0 auto;padding:clamp(50px,9vw,86px) clamp(14px,4vw,30px) 0;text-align:center">
+    <h2 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(32px,8vw,52px);line-height:1.08;letter-spacing:-.025em;margin:0;text-wrap:balance">The world is turning.<br />Have a look.</h2>
+    <a href="globe.html" style="display:inline-flex;align-items:center;justify-content:center;gap:10px;margin-top:28px;background:#0f5c4a;color:#f7f4ed;font-weight:500;font-size:16px;padding:17px 32px;border-radius:2px;max-width:100%" style-hover="background:#14181d;color:#f7f4ed">Open the globe <span style="font-family:'IBM Plex Mono',monospace">→</span></a>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#6d7683;margin-top:16px">No account · nothing to cancel</div>
+  </div>
+
+  <div style="max-width:1200px;margin:clamp(46px,8vw,70px) auto 0;padding:26px clamp(14px,4vw,30px) 40px;border-top:1px solid #14181d;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:baseline;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#6d7683">
+    <span style="font-family:'Newsreader',serif;font-size:19px;letter-spacing:-.01em;text-transform:none;color:#14181d">TERRA</span>
+    <span>Coastlines: Natural Earth · Flat map: Equal Earth projection</span>
+    <span>A prototype · news snapshot, not a live feed</span>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+const CAT = {politics:'#9b8cf0',conflict:'#e5654d',business:'#7aa8e8',health:'#5fd8b4',science:'#4fb8c8',environment:'#6fc26f',tech:'#e5b45f',culture:'#e08fb8'};
+
+const SPOTS = [
+  {n:'Nairobi',c:'Kenya',lon:36.82,lat:-1.29,cat:'business',h:'Regional data-centre buildout clears its final grid-capacity review.'},
+  {n:'Jakarta',c:'Indonesia',lon:106.85,lat:-6.21,cat:'environment',h:'Coastal defence works enter phase three as land subsidence data is revised.'},
+  {n:'Santiago',c:'Chile',lon:-70.65,lat:-33.45,cat:'politics',h:'Constitutional committee publishes a compromise draft after three months.'},
+  {n:'Reykjavík',c:'Iceland',lon:-21.94,lat:64.15,cat:'science',h:'Fissure monitoring extended after a fresh swarm of shallow tremors.'},
+  {n:'Seoul',c:'South Korea',lon:126.98,lat:37.57,cat:'tech',h:'Chip-tool export rules redrawn; two suppliers dispute the timeline.'},
+  {n:'Lagos',c:'Nigeria',lon:3.39,lat:6.52,cat:'business',h:'Refinery output figures reconciled with customs data for the first time.'},
+  {n:'Warsaw',c:'Poland',lon:21.01,lat:52.23,cat:'politics',h:'Border logistics agreement signed; farm groups signal partial objection.'},
+  {n:'Lima',c:'Peru',lon:-77.04,lat:-12.05,cat:'health',h:'Dengue caseload falls for a fourth week as vector programme widens.'},
+  {n:'Auckland',c:'New Zealand',lon:174.76,lat:-36.85,cat:'environment',h:'Marine heatwave declared over; fisheries quotas under review.'},
+  {n:'Cairo',c:'Egypt',lon:31.24,lat:30.04,cat:'business',h:'Canal transit volumes recover to 78% of last year, authority says.'},
+  {n:'Vancouver',c:'Canada',lon:-123.12,lat:49.28,cat:'politics',h:'Housing-supply bill passes committee with cross-party amendments.'},
+  {n:'Mumbai',c:'India',lon:72.88,lat:19.08,cat:'culture',h:'Monsoon-season archive project opens 40,000 scanned pages to the public.'},
+  {n:'Tbilisi',c:'Georgia',lon:44.79,lat:41.72,cat:'conflict',h:'Ceasefire monitors report a quiet week along the administrative line.'},
+  {n:'Dakar',c:'Senegal',lon:-17.44,lat:14.72,cat:'science',h:'New solar-forecasting station joins the West African grid network.'},
+  {n:'Oslo',c:'Norway',lon:10.75,lat:59.91,cat:'environment',h:'Sovereign fund publishes its first full emissions ledger.'},
+  {n:'Hanoi',c:'Vietnam',lon:105.83,lat:21.03,cat:'tech',h:'Undersea cable repair completes; latency returns to baseline.'}
+];
+
+class Component extends DCLogic {
+  state = {sel:0, open:0};
+
+  componentDidMount(){
+    this.rot = 18; this.tilt = -12; this.drag = null; this.moved = 0;
+    this.spots = SPOTS;
+    this.fit();
+    this._onResize = () => this.fit();
+    window.addEventListener('resize', this._onResize);
+    this.bindPointer();
+    this.load();
+    this.tick();
+  }
+  componentWillUnmount(){
+    window.removeEventListener('resize', this._onResize);
+    cancelAnimationFrame(this._raf);
+    const c = this.cv;
+    if (c && this._h) { c.removeEventListener('pointerdown', this._h.d); window.removeEventListener('pointermove', this._h.m); window.removeEventListener('pointerup', this._h.u); }
+  }
+
+  fit(){
+    const c = this.cv; if(!c) return;
+    const w = c.clientWidth || 420, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    c.width = w * dpr; c.height = w * dpr;
+    this.size = w; this.dpr = dpr;
+    if (window.d3) this.proj = d3.geoOrthographic().translate([w/2, w/2]).scale(w/2 - 6).clipAngle(90);
+  }
+
+  load(tries){
+    tries = tries || 0;
+    if (!window.d3 || !window.topojson){ if (tries < 60) setTimeout(() => this.load(tries+1), 120); return; }
+    if (!this.proj) this.fit();
+    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json')
+      .then(r => r.json())
+      .then(t => { this.land = topojson.feature(t, t.objects.land); this.grat = d3.geoGraticule10(); })
+      .catch(() => {});
+  }
+
+  bindPointer(){
+    const c = this.cv; if(!c) return;
+    const pt = e => { const r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const d = e => { this.drag = pt(e); this.moved = 0; c.style.cursor = 'grabbing'; };
+    const m = e => {
+      if (!this.drag) return;
+      const p = pt(e), dx = p[0] - this.drag[0], dy = p[1] - this.drag[1];
+      this.rot += dx * 0.45; this.tilt = Math.max(-75, Math.min(75, this.tilt - dy * 0.35));
+      this.moved += Math.abs(dx) + Math.abs(dy); this.drag = p;
+    };
+    const u = e => {
+      if (this.drag && this.moved < 5) this.pick(pt(e));
+      this.drag = null; c.style.cursor = 'grab';
+    };
+    this._h = {d, m, u};
+    c.addEventListener('pointerdown', d);
+    window.addEventListener('pointermove', m);
+    window.addEventListener('pointerup', u);
+  }
+
+  pick(p){
+    if (!this.proj) return;
+    let best = -1, bd = 22;
+    this.spots.forEach((s, i) => {
+      const q = this.proj([s.lon, s.lat]); if(!q) return;
+      const dist = Math.hypot(q[0]-p[0], q[1]-p[1]);
+      if (dist < bd) { bd = dist; best = i; }
+    });
+    if (best >= 0) this.setState({sel: best});
+  }
+
+  tick(){
+    this._raf = requestAnimationFrame(() => this.tick());
+    const c = this.cv, pj = this.proj; if(!c || !pj) return;
+    if (!this.drag) this.rot += 0.09;
+    pj.rotate([this.rot, this.tilt]);
+    const g = c.getContext('2d'), w = this.size, dpr = this.dpr;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, w);
+    const path = d3.geoPath(pj, g);
+
+    const sph = g.createRadialGradient(w*0.38, w*0.32, w*0.05, w/2, w/2, w/2);
+    sph.addColorStop(0, '#123054'); sph.addColorStop(1, '#060c16');
+    g.beginPath(); path({type:'Sphere'}); g.fillStyle = sph; g.fill();
+
+    if (this.grat){ g.beginPath(); path(this.grat); g.strokeStyle = 'rgba(120,160,210,.12)'; g.lineWidth = 0.6; g.stroke(); }
+    if (this.land){
+      g.beginPath(); path(this.land); g.fillStyle = '#0d2035'; g.fill();
+      g.strokeStyle = 'rgba(95,216,180,.55)'; g.lineWidth = 0.9; g.stroke();
+    }
+    g.beginPath(); path({type:'Sphere'}); g.strokeStyle = 'rgba(95,216,180,.3)'; g.lineWidth = 1; g.stroke();
+
+    const rot = pj.rotate(), t = Date.now() / 900;
+    this.spots.forEach((s, i) => {
+      const hidden = d3.geoDistance([s.lon, s.lat], [-rot[0], -rot[1]]) > Math.PI/2;
+      if (hidden) return;
+      const q = pj([s.lon, s.lat]); if(!q) return;
+      const col = CAT[s.cat], on = i === this.state.sel;
+      const pr = (Math.sin(t + i) + 1) / 2;
+      g.beginPath(); g.arc(q[0], q[1], 4 + pr * 7, 0, 6.284);
+      g.strokeStyle = col; g.globalAlpha = (on ? 0.5 : 0.28) * (1 - pr); g.lineWidth = 1.2; g.stroke();
+      g.globalAlpha = 1;
+      g.beginPath(); g.arc(q[0], q[1], on ? 4.6 : 3.1, 0, 6.284);
+      g.fillStyle = col; g.shadowColor = col; g.shadowBlur = on ? 14 : 7; g.fill(); g.shadowBlur = 0;
+      if (on){
+        g.font = "500 11px 'IBM Plex Mono', monospace"; g.fillStyle = '#dbe6f4';
+        g.fillText(s.n.toUpperCase(), q[0] + 10, q[1] - 8);
+      }
+    });
+  }
+
+  renderVals(){
+    const s = this.spots ? this.spots[this.state.sel] : SPOTS[this.state.sel];
+    const cat = s.cat.charAt(0).toUpperCase() + s.cat.slice(1);
+    const faqSrc = [
+      {q:'Is it really free?', a:'Yes. Every feature is open to every visitor — no account, no trial, no card. If that ever changes, it will be announced here first, and never applied retroactively to what already works.'},
+      {q:'Where does the news come from?', a:'Each entry is compiled from at least three independent outlets, and the app lists them per story with a source-balance bar showing the mix of wire, national and local reporting.'},
+      {q:'Is this a live feed?', a:'Not yet. The prototype ships a dated snapshot so nothing unverified appears while you browse. Live syndication is the next milestone.'},
+      {q:'How do you handle bias?', a:'By exposing it rather than hiding it. Every story shows its sources, a "just the facts" toggle strips interpretive language, and disagreements between outlets are stated instead of averaged away.'},
+      {q:'Why does the flat map look unfamiliar?', a:'It uses the Equal Earth projection, which preserves relative land area. Mercator maps inflate high latitudes; countries near the equator appear far smaller than they are.'},
+      {q:'Do you track me?', a:'No accounts, no ad tech, no profile. Bookmarks and follows are stored locally in your own browser.'}
+    ];
+    return {
+      heroCanvas: el => { this.cv = el; },
+      dateLabel: new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'}),
+      selName: s.n,
+      selMeta: s.c + ' · ' + cat,
+      selHeadline: s.h,
+      selColor: CAT[s.cat],
+      tickerItems: [...SPOTS, ...SPOTS].map((x, i) => ({key:i, color:CAT[x.cat], label:x.c + ' — ' + x.cat})),
+      steps: [
+        {num:'1', title:'Spin and scan', body:'Pulsing rings mark the major stories. Colour tells you the category before you read a word.'},
+        {num:'2', title:'Click a place', body:'Any of 37 locations opens its dossier: current stories newest-first, plus the history that makes them legible.'},
+        {num:'3', title:'Follow the thread', body:'Arcs link related events across continents. Turn on the heat map, or scrub back through the week.'}
+      ],
+      features: [
+        {tag:'Navigate', color:CAT.tech, title:'Search anywhere', body:'Type a city or country and the globe flies to it.'},
+        {tag:'Navigate', color:CAT.science, title:'Equal Earth flat map', body:'Switch projections to see true relative land areas.'},
+        {tag:'Context', color:CAT.politics, title:'Story arcs', body:'Curved links between events that share a cause.'},
+        {tag:'Context', color:CAT.environment, title:'Category heat map', body:'Colour regions by their dominant story type.'},
+        {tag:'Context', color:CAT.business, title:'Time machine', body:'Scrub the last seven days and replay how it broke.'},
+        {tag:'Trust', color:CAT.health, title:'Source balance', body:'A per-story bar showing the reporting mix behind it.'},
+        {tag:'Trust', color:CAT.conflict, title:'Just the facts', body:'Strip interpretive language down to the verified record.'},
+        {tag:'Trust', color:CAT.culture, title:'Freshness fade', body:'Older stories visibly dim, so recency is never ambiguous.'},
+        {tag:'Reading', color:CAT.tech, title:'AI brief', body:'A short synthesis of a location, generated on request.'},
+        {tag:'Reading', color:CAT.science, title:'Bookmarks & follows', body:'Keep a watchlist of places, stored in your browser.'},
+        {tag:'Reading', color:CAT.politics, title:'Day / night terminator', body:'See where the sun is as you read the local hour.'},
+        {tag:'Reading', color:CAT.business, title:'Guided tour', body:'A spotlight walkthrough of every control, on demand.'}
+      ],
+      method: [
+        {k:'01', title:'Three sources, minimum', body:'No story enters the globe on a single report. Each is corroborated across independent outlets before it is placed.'},
+        {k:'02', title:'Disagreement is content', body:'Where outlets conflict, the conflict is shown. We do not average two accounts into one confident sentence.'},
+        {k:'03', title:'History attached', body:'Every location carries the background needed to read today: what led here, and when it started.'},
+        {k:'04', title:'Dated, never vague', body:'Timestamps are explicit and stories fade with age. Nothing pretends to be newer than it is.'}
+      ],
+      pledge: ['All 12 instruments, no lock icons', 'No account required to read', 'No ad tech, no tracking profile', 'Bookmarks stay in your browser'],
+      faqs: faqSrc.map((f, i) => ({
+        key: i, q: f.q, a: f.a,
+        open: this.state.open === i,
+        sign: this.state.open === i ? '–' : '+',
+        onClick: () => this.setState(st => ({open: st.open === i ? -1 : i}))
+      }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>

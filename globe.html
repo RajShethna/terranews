@@ -1,0 +1,1435 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#05070d;overflow:hidden;width:100%;-webkit-text-size-adjust:100%}
+svg,canvas,img{max-width:100%}
+a{color:#5fd8b4;text-decoration:none}
+a:hover{color:#8fead0}
+.starfield{background-image:radial-gradient(1.2px 1.2px at 20px 30px,rgba(255,255,255,.7),transparent),radial-gradient(1px 1px at 130px 80px,rgba(200,220,255,.5),transparent),radial-gradient(1px 1px at 220px 160px,rgba(255,255,255,.45),transparent),radial-gradient(1.4px 1.4px at 300px 50px,rgba(180,220,255,.6),transparent),radial-gradient(1px 1px at 70px 200px,rgba(255,255,255,.4),transparent);background-size:360px 260px;opacity:.55}
+@keyframes panelIn{from{transform:translateX(46px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.65)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(120,160,210,.25);border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+.scene-tooltip{pointer-events:none}
+@keyframes pulseFade{0%,100%{opacity:.85}50%{opacity:.15}}
+
+/* ---------- mobile ---------- */
+/* iOS zooms the page when a control's text is under 16px. */
+@media(max-width:900px){
+  input,select,textarea{font-size:16px!important}
+  #tg-search input{padding:6px 0!important}
+}
+
+@media(max-width:900px){
+  /* header: shrink, drop the redundant date strip */
+  #tg-topbar{padding:12px 12px!important}
+  #tg-datemeta{display:none!important}
+
+  /* search + tool buttons: full width across the top */
+  #tg-left{top:66px!important;left:10px!important;right:10px!important;width:auto!important;max-width:none!important}
+  #tg-tools{flex-wrap:wrap!important}
+  #tg-tools>div{flex:1 1 calc(50% - 4px)!important;padding:14px 6px!important;font-size:10.5px!important}
+
+  /* top-stories rail: move under the globe, above the time machine */
+  #tg-rail{top:auto!important;bottom:132px!important;left:10px!important;right:10px!important;
+           width:auto!important;max-width:none!important;max-height:26vh!important;overflow-y:auto!important}
+
+  /* the flat-map caption sits where the search panel now lives */
+  #tg-flatcap{top:auto!important;bottom:auto!important;margin-top:0!important;top:242px!important}
+
+  /* reference panels are desktop luxuries — the globe needs the room */
+  #tg-legend{display:none!important}
+  #tg-bookmarks{display:none!important}
+
+  /* time machine: full width, no centring transform */
+  #tg-time{left:10px!important;right:10px!important;width:auto!important;max-width:none!important;transform:none!important;bottom:10px!important}
+
+  /* location detail: full-screen sheet */
+  #tg-detail{width:100%!important;max-width:100%!important;border-left:none!important}
+  .tg-pad{padding-left:16px!important;padding-right:16px!important}
+
+  /* dialogs */
+  #tg-modal{padding:22px 18px!important;max-height:82vh!important}
+  #tg-guide .tg-gtitle{font-size:19px!important}
+  #tg-guide{width:calc(100vw - 24px)!important;max-width:none!important;padding:22px 20px!important}
+}
+
+@media(max-width:420px){
+  #tg-rail{max-height:22vh!important;bottom:126px!important}
+  #tg-flatcap{top:250px!important}
+  #tg-tools>div{font-size:10px!important;letter-spacing:.04em!important}
+}
+
+/* touch devices get no hover, so make the controls physically bigger */
+@media(pointer:coarse){
+  #tg-help>div{padding:10px 14px!important}
+  input[type=range]{height:34px!important}
+  /* these read fine with a mouse but are too small for a thumb */
+  #tg-railtoggle{padding:9px 2px!important}
+  .tg-golive{padding:8px 12px!important;display:inline-block!important}
+  .tg-x{padding:8px!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</helmet>
+<div style="position:fixed;inset:0;height:100dvh;background:#05070d;overflow:hidden;overscroll-behavior:none;font-family:'Space Grotesk',sans-serif">
+
+  <div style="position:absolute;inset:0;z-index:0;background:radial-gradient(circle at 28% 18%,rgba(50,90,150,.13),transparent 45%),radial-gradient(circle at 78% 78%,rgba(30,110,110,.1),transparent 50%)"></div>
+  <div class="starfield" style="position:absolute;inset:0;z-index:0"></div>
+
+  <div ref="{{ globeRef }}" style="position:absolute;inset:0;z-index:2"></div>
+
+  <sc-if value="{{ flat }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;z-index:3;background:radial-gradient(circle at 50% 42%,#0a1a30,#05070d 80%);display:flex;align-items:center;justify-content:center;padding:clamp(96px,16vw,118px) clamp(12px,4vw,30px) clamp(120px,20vw,148px)">
+      <sc-if value="{{ flatReady }}" hint-placeholder-val="{{ false }}">
+        <svg viewBox="{{ flatViewBox }}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">
+          <path d="{{ flatSphere }}" fill="rgba(10,26,50,0.92)" stroke="rgba(95,216,180,0.3)" stroke-width="0.8"></path>
+          <path d="{{ flatGrat }}" fill="none" stroke="rgba(120,160,210,0.12)" stroke-width="0.5"></path>
+          <sc-for list="{{ flatCountries }}" as="c" hint-placeholder-count="30">
+            <path d="{{ c.d }}" fill="{{ c.fill }}" stroke="rgba(95,216,180,0.4)" stroke-width="{{ c.sw }}" style="cursor:pointer" onClick="{{ c.onClick }}"></path>
+          </sc-for>
+          <sc-for list="{{ flatArcs }}" as="a" hint-placeholder-count="4">
+            <path d="{{ a.d }}" fill="none" stroke="{{ a.color }}" stroke-width="{{ a.w }}" stroke-dasharray="4 3" style="pointer-events:none"></path>
+          </sc-for>
+          <sc-for list="{{ flatRings }}" as="r" hint-placeholder-count="4">
+            <circle cx="{{ r.x }}" cy="{{ r.y }}" r="{{ r.r }}" fill="none" stroke="{{ r.color }}" stroke-width="1.1" style="animation:pulseFade 1.8s infinite"></circle>
+          </sc-for>
+          <sc-for list="{{ flatHotspots }}" as="h" hint-placeholder-count="12">
+            <circle cx="{{ h.x }}" cy="{{ h.y }}" r="{{ h.r }}" fill="{{ h.color }}" stroke="#05070d" stroke-width="0.7" style="cursor:pointer" onClick="{{ h.onClick }}"></circle>
+          </sc-for>
+        </svg>
+      </sc-if>
+      <div id="tg-flatcap" style="position:absolute;top:150px;left:50%;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.13em;color:#6f86a6;text-transform:uppercase;text-align:center;pointer-events:none;max-width:calc(100vw - 28px)">Flat view · Equal Earth projection — every country at true relative size</div>
+    </div>
+  </sc-if>
+
+  <div id="tg-topbar" style="position:absolute;top:0;left:0;right:0;z-index:20;display:flex;align-items:flex-start;justify-content:space-between;padding:18px 26px;pointer-events:none">
+    <div style="pointer-events:auto">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:9px;height:9px;border-radius:50%;background:#5fd8b4;box-shadow:0 0 12px #5fd8b4;animation:pulseDot 2s infinite"></span>
+        <div style="font-family:'Space Grotesk';font-weight:700;font-size:20px;letter-spacing:.01em;color:#eef4fb">TERRA <span style="color:#5fd8b4">·</span> LIVE</div>
+      </div>
+      <div style="font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.18em;color:#6f86a6;margin-top:4px;text-transform:uppercase">Interactive world news globe</div>
+    </div>
+    <div id="tg-topright" style="pointer-events:auto;display:flex;flex-direction:column;align-items:flex-end;gap:9px">
+      <div id="tg-help" style="display:flex;gap:8px">
+        <div onClick="{{ openGuide }}" title="Step-by-step walkthrough" style="cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#bfeeda;background:rgba(95,216,180,.1);border:1px solid rgba(95,216,180,.3);padding:7px 12px;border-radius:100px" style-hover="background:rgba(95,216,180,.18)">◎ Guide</div>
+        <div onClick="{{ openInfo }}" title="Glossary of terms & how it works" style="cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#9fb4d0;background:rgba(8,14,24,.72);border:1px solid rgba(120,160,210,.24);padding:7px 12px;border-radius:100px" style-hover="background:rgba(120,160,210,.14)">ⓘ Info</div>
+      </div>
+      <div id="tg-datemeta" style="text-align:right">
+        <div style="font-family:'IBM Plex Mono';font-size:11px;color:#9fb4d0;letter-spacing:.08em">{{ dateLabel }}</div>
+        <div style="font-family:'IBM Plex Mono';font-size:9px;color:#5c7396;letter-spacing:.14em;margin-top:3px">MULTI-SOURCE · REVERSE-CHRONOLOGICAL</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tg-left" style="position:absolute;top:82px;left:26px;z-index:18;width:288px;max-width:calc(100vw - 52px)">
+    <div id="tg-search" style="display:flex;align-items:center;gap:9px;background:rgba(8,14,24,.82);backdrop-filter:blur(12px);border:1px solid rgba(120,160,210,.18);border-radius:11px;padding:10px 13px">
+      <span style="color:#5fd8b4;font-size:13px">⌕</span>
+      <input value="{{ query }}" onInput="{{ onQuery }}" placeholder="Search a city or country…" style="flex:1;background:transparent;border:none;outline:none;color:#eef4fb;font-family:'Space Grotesk',sans-serif;font-size:13px" />
+      <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}"><span onClick="{{ clearQuery }}" class="tg-x" style="cursor:pointer;color:#6f86a6;font-size:12px;padding:6px;margin:-6px">✕</span></sc-if>
+    </div>
+    <sc-if value="{{ hasResults }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:6px;background:rgba(8,14,24,.92);backdrop-filter:blur(12px);border:1px solid rgba(120,160,210,.18);border-radius:11px;overflow:hidden">
+        <sc-for list="{{ results }}" as="r" hint-placeholder-count="3">
+          <div onClick="{{ r.onClick }}" style="display:flex;align-items:center;gap:10px;padding:9px 13px;cursor:pointer" style-hover="background:rgba(95,216,180,.08)">
+            <span style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ r.color }};box-shadow:0 0 7px {{ r.color }}"></span>
+            <span style="font-family:'Space Grotesk',sans-serif;font-size:13px;color:#e8eef7">{{ r.name }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;color:#6f86a6;text-transform:uppercase;margin-left:auto">{{ r.country }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div id="tg-tools" style="display:flex;gap:7px;margin-top:9px">
+      <div onClick="{{ toggleArcs }}" title="Show links between related stories" style="cursor:pointer;flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:8px 4px;border-radius:9px;background:{{ arcsBg }};color:{{ arcsFg }};border:1px solid {{ arcsBd }}">↔ Links</div>
+      <div onClick="{{ toggleHeat }}" title="Color regions by dominant story type" style="cursor:pointer;flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:8px 4px;border-radius:9px;background:{{ heatBg }};color:{{ heatFg }};border:1px solid {{ heatBd }}">◭ Heat</div>
+      <div onClick="{{ toggleDayNight }}" title="Real-time sun position &amp; terminator" style="cursor:pointer;flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:8px 4px;border-radius:9px;background:{{ dnBg }};color:{{ dnFg }};border:1px solid {{ dnBd }}">☀ Sun</div>
+      <div onClick="{{ toggleFlat }}" title="Switch between 3D globe and the Equal Earth flat map" style="cursor:pointer;flex:1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:8px 4px;border-radius:9px;background:{{ flatBg }};color:{{ flatFg }};border:1px solid {{ flatBd }}">⊞ {{ flatLabel }}</div>
+    </div>
+  </div>
+
+  <div id="tg-rail" style="position:absolute;right:26px;top:96px;z-index:15;width:302px;max-width:calc(100vw - 52px);background:rgba(8,14,24,.72);backdrop-filter:blur(12px);border:1px solid rgba(120,160,210,.14);border-radius:14px;padding:16px 16px 9px">
+    <div onClick="{{ toggleRail }}" id="tg-railtoggle" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:{{ railHeadMargin }}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-family:'IBM Plex Mono';font-size:11px;color:#6f86a6">{{ railChevron }}</span>
+        <div style="font-family:'IBM Plex Mono';font-size:9.5px;letter-spacing:.16em;color:#6f86a6;text-transform:uppercase">Top stories now</div>
+      </div>
+      <div style="font-family:'IBM Plex Mono';font-size:9px;color:#e5654d;letter-spacing:.12em;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#e5654d;animation:pulseDot 1.6s infinite"></span>LIVE</div>
+    </div>
+    <sc-if value="{{ railOpen }}" hint-placeholder-val="{{ true }}">
+    <sc-for list="{{ topStories }}" as="story" hint-placeholder-count="6">
+      <div onClick="{{ story.onClick }}" style="display:flex;gap:11px;padding:9px 8px;border-radius:9px;cursor:pointer;align-items:flex-start" style-hover="background:rgba(95,216,180,.07)">
+        <span style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex:none;background:{{ story.color }};box-shadow:0 0 8px {{ story.color }}"></span>
+        <div>
+          <div style="font-family:'IBM Plex Mono';font-size:8.5px;letter-spacing:.12em;color:#6f86a6;text-transform:uppercase">{{ story.country }}</div>
+          <div style="font-family:'Newsreader';font-size:13.5px;line-height:1.3;color:#dbe6f4;margin-top:1px">{{ story.headline }}</div>
+        </div>
+      </div>
+    </sc-for>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ hasBookmarks }}" hint-placeholder-val="{{ false }}">
+    <div id="tg-bookmarks" style="position:absolute;left:26px;bottom:186px;z-index:15;background:rgba(8,14,24,.7);backdrop-filter:blur(10px);border:1px solid rgba(120,160,210,.14);border-radius:12px;padding:14px 16px;width:236px;max-width:calc(100vw - 52px)">
+      <div style="font-family:'IBM Plex Mono';font-size:9.5px;letter-spacing:.16em;color:#6f86a6;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="color:#e6b34d">★</span> Following</div>
+      <sc-for list="{{ bookmarks }}" as="b" hint-placeholder-count="2">
+        <div onClick="{{ b.onClick }}" style="display:flex;align-items:center;gap:9px;padding:6px 5px;border-radius:8px;cursor:pointer" style-hover="background:rgba(95,216,180,.07)">
+          <span style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ b.color }};box-shadow:0 0 7px {{ b.color }}"></span>
+          <span style="font-family:'Space Grotesk',sans-serif;font-size:12.5px;color:#dbe6f4">{{ b.name }}</span>
+          <span onClick="{{ b.onRemove }}" class="tg-x" style="margin-left:auto;color:#5c7396;font-size:12px;cursor:pointer;padding:6px" style-hover="color:#e5654d">✕</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <div id="tg-legend" style="position:absolute;left:26px;bottom:24px;z-index:15;background:rgba(8,14,24,.7);backdrop-filter:blur(10px);border:1px solid rgba(120,160,210,.14);border-radius:12px;padding:14px 16px;width:236px;max-width:calc(100vw - 52px)">
+    <div style="font-family:'IBM Plex Mono';font-size:9.5px;letter-spacing:.16em;color:#6f86a6;text-transform:uppercase;margin-bottom:11px">Category key</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px">
+      <sc-for list="{{ cats }}" as="cat" hint-placeholder-count="8">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="width:8px;height:8px;border-radius:2px;flex:none;background:{{ cat.color }}"></span>
+          <span style="font-family:'Space Grotesk';font-size:11px;color:#c3d2e6">{{ cat.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top:12px;padding-top:11px;border-top:1px solid rgba(120,160,210,.12);display:flex;align-items:center;gap:9px">
+      <span style="width:9px;height:9px;border-radius:50%;flex:none;background:#e5654d;box-shadow:0 0 10px #e5654d;animation:pulseDot 1.6s infinite"></span>
+      <span style="font-family:'Space Grotesk';font-size:11px;color:#9fb4d0">Pulsing ring = major story</span>
+    </div>
+  </div>
+
+  <div id="tg-time" style="position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:16;width:440px;max-width:calc(100vw - 60px);background:rgba(8,14,24,.78);backdrop-filter:blur(12px);border:1px solid rgba(120,160,210,.16);border-radius:13px;padding:11px 16px 13px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.15em;color:#6f86a6;text-transform:uppercase">Time machine</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-family:'IBM Plex Mono';font-size:10.5px;letter-spacing:.06em;color:{{ scrubLabelColor }}">{{ scrubLabel }}</span>
+        <sc-if value="{{ notLive }}" hint-placeholder-val="{{ false }}"><span onClick="{{ resetScrub }}" class="tg-golive" style="cursor:pointer;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.1em;color:#5fd8b4;border:1px solid rgba(95,216,180,.4);padding:3px 9px;border-radius:100px">● GO LIVE</span></sc-if>
+      </div>
+    </div>
+    <input type="range" min="{{ scrubMin }}" max="{{ scrubMax }}" step="3600000" value="{{ scrubVal }}" onInput="{{ onScrub }}" style="width:100%;accent-color:#5fd8b4;cursor:pointer" />
+    <div style="text-align:center;margin-top:8px;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.11em;color:#54698c">DRAG TO REPLAY THE WEEK &nbsp;·&nbsp; CLICK A HOTSPOT &nbsp;·&nbsp; SCROLL TO ZOOM</div>
+  </div>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:86px;left:50%;transform:translateX(-50%);z-index:30;background:rgba(22,15,11,.92);border:1px solid rgba(229,101,77,.4);color:#f0c9bd;font-family:'IBM Plex Mono';font-size:11px;letter-spacing:.05em;padding:9px 17px;border-radius:8px;animation:fadeUp .25s ease">{{ toast }}</div>
+  </sc-if>
+
+  <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+    <div id="tg-detail" style="position:absolute;top:0;right:0;bottom:0;z-index:25;width:466px;max-width:94vw;background:rgba(7,12,21,.94);backdrop-filter:blur(18px);border-left:1px solid rgba(120,160,210,.18);box-shadow:-30px 0 80px rgba(0,0,0,.55);display:flex;flex-direction:column;animation:panelIn .4s cubic-bezier(.2,.7,.2,1)">
+      <div class="tg-pad" style="padding:22px 26px 15px;border-bottom:1px solid rgba(120,160,210,.12)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.16em;color:#5fd8b4;text-transform:uppercase">{{ country }}</span>
+              <sc-if value="{{ hot }}" hint-placeholder-val="{{ false }}"><span style="font-family:'IBM Plex Mono';font-size:8.5px;letter-spacing:.1em;color:#e5654d;border:1px solid rgba(229,101,77,.45);padding:2px 7px;border-radius:100px;white-space:nowrap">● MAJOR STORY</span></sc-if>
+            </div>
+            <div style="font-family:'Space Grotesk';font-weight:700;font-size:28px;color:#eef4fb;margin-top:6px;letter-spacing:-.01em">{{ name }}</div>
+            <div style="font-family:'IBM Plex Mono';font-size:10px;color:#6f86a6;margin-top:4px">{{ region }} &nbsp;·&nbsp; {{ coords }}</div>
+          </div>
+          <div style="display:flex;gap:8px;flex:none">
+            <div onClick="{{ onBookmark }}" title="Follow this location" style="cursor:pointer;width:32px;height:32px;border-radius:50%;border:1px solid {{ bmBorder }};display:flex;align-items:center;justify-content:center;color:{{ bmColor }};font-size:14px" style-hover="background:rgba(255,255,255,.07)">★</div>
+            <div onClick="{{ onShare }}" title="Copy shareable link" style="cursor:pointer;width:32px;height:32px;border-radius:50%;border:1px solid rgba(120,160,210,.2);display:flex;align-items:center;justify-content:center;color:#9fb4d0;font-size:13px" style-hover="background:rgba(255,255,255,.07)">⇗</div>
+            <div onClick="{{ closePanel }}" style="cursor:pointer;width:32px;height:32px;border-radius:50%;border:1px solid rgba(120,160,210,.2);display:flex;align-items:center;justify-content:center;color:#9fb4d0;font-size:14px" style-hover="background:rgba(255,255,255,.07)">✕</div>
+          </div>
+        </div>
+        <div style="font-family:'Newsreader';font-size:14px;line-height:1.55;color:#a9bdd6;margin-top:13px">{{ blurb }}</div>
+        <div style="display:flex;gap:26px;margin-top:16px">
+          <div onClick="{{ setTabNews }}" style="cursor:pointer;padding-bottom:9px;font-family:'Space Grotesk';font-weight:600;font-size:13.5px;color:{{ newsTabColor }};border-bottom:2px solid {{ newsTabBorder }}">News &nbsp;<span style="font-family:'IBM Plex Mono';font-size:10px;color:#5c7396">{{ newsCount }}</span></div>
+          <div onClick="{{ setTabHistory }}" style="cursor:pointer;padding-bottom:9px;font-family:'Space Grotesk';font-weight:600;font-size:13.5px;color:{{ histTabColor }};border-bottom:2px solid {{ histTabBorder }}">History</div>
+        </div>
+      </div>
+
+      <div class="tg-pad" style="flex:1;overflow-y:auto;padding:18px 26px 44px;-webkit-overflow-scrolling:touch">
+        <sc-if value="{{ showNews }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
+            <sc-for list="{{ chips }}" as="chip" hint-placeholder-count="4">
+              <div onClick="{{ chip.onClick }}" style="cursor:pointer;font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:5px 11px;border-radius:100px;border:1px solid {{ chip.border }};background:{{ chip.bg }};color:{{ chip.fg }}">{{ chip.label }} <span style="opacity:.55">{{ chip.count }}</span></div>
+            </sc-for>
+          </div>
+          <div onClick="{{ onAI }}" style="cursor:pointer;display:flex;align-items:center;gap:9px;background:rgba(95,216,180,.06);border:1px solid rgba(95,216,180,.22);border-radius:10px;padding:10px 13px;margin-bottom:14px" style-hover="background:rgba(95,216,180,.11)">
+            <span style="font-size:13px">✦</span>
+            <div style="flex:1">
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:600;color:#bfeeda">{{ aiBtnLabel }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.08em;color:#6f86a6;margin-top:1px">AI SUMMARY · VERIFY AGAINST SOURCES</div>
+            </div>
+          </div>
+          <sc-if value="{{ hasAI }}" hint-placeholder-val="{{ false }}">
+            <div style="background:rgba(169,141,230,.07);border:1px solid rgba(169,141,230,.22);border-radius:10px;padding:12px 14px;margin-bottom:16px">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.14em;color:#b6a0e0;text-transform:uppercase;margin-bottom:6px">✦ AI situational brief · unverified</div>
+              <div style="font-family:'Newsreader',serif;font-size:14px;line-height:1.6;color:#cdbff0">{{ aiText }}</div>
+            </div>
+          </sc-if>
+          <sc-for list="{{ items }}" as="item" hint-placeholder-count="4">
+            <div onClick="{{ item.onToggle }}" style="cursor:pointer;padding:15px 0;border-bottom:1px solid rgba(120,160,210,.1);opacity:{{ item.opacity }}">
+              <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px;flex-wrap:wrap">
+                <span style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:{{ item.catColor }};border:1px solid {{ item.catColor }};padding:2px 7px;border-radius:100px">{{ item.catLabel }}</span>
+                <span style="font-family:'IBM Plex Mono';font-size:10px;color:#7089aa">{{ item.rel }}</span>
+                <span style="font-family:'IBM Plex Mono';font-size:10px;color:#3f5470">·</span>
+                <span style="font-family:'IBM Plex Mono';font-size:10px;color:#5c7396">{{ item.abs }}</span>
+              </div>
+              <div style="font-family:'Newsreader';font-size:17.5px;line-height:1.35;color:#e8eef7;font-weight:500">{{ item.title }}</div>
+              <div style="display:flex;align-items:center;gap:9px;margin-top:9px">
+                <div style="display:flex;height:4px;flex:1;max-width:130px;border-radius:100px;overflow:hidden;background:rgba(120,160,210,.12)">
+                  <sc-for list="{{ item.leanSegs }}" as="seg" hint-placeholder-count="2">
+                    <span title="{{ seg.label }}" style="flex:{{ seg.flex }};background:{{ seg.color }}"></span>
+                  </sc-for>
+                </div>
+                <span style="font-family:'IBM Plex Mono';font-size:8.5px;letter-spacing:.08em;color:#5c7396;text-transform:uppercase">{{ item.srcCount }} sources</span>
+              </div>
+              <sc-if value="{{ item.collapsed }}" hint-placeholder-val="{{ true }}">
+                <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.11em;color:#526d90;margin-top:9px">▸ EXPAND FOR DETAIL &amp; SOURCES</div>
+              </sc-if>
+              <sc-if value="{{ item.expanded }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:12px">
+                  <div style="display:inline-flex;gap:2px;background:rgba(120,160,210,.1);border-radius:8px;padding:3px;margin-bottom:12px">
+                    <span onClick="{{ item.onFacts }}" style="cursor:pointer;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:6px;color:{{ item.fullBtnColor }}">Full</span>
+                    <span onClick="{{ item.onFacts }}" style="cursor:pointer;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:6px;color:{{ item.factsBtnColor }}">Just the facts</span>
+                  </div>
+                  <sc-if value="{{ item.showFull }}" hint-placeholder-val="{{ true }}">
+                    <sc-for list="{{ item.paras }}" as="para" hint-placeholder-count="2">
+                      <div style="font-family:'Newsreader';font-size:14.5px;line-height:1.6;color:#aebfd6;margin-bottom:10px">{{ para }}</div>
+                    </sc-for>
+                  </sc-if>
+                  <sc-if value="{{ item.showFacts }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-family:'Newsreader';font-size:15px;line-height:1.6;color:#dbe6f4;margin-bottom:10px;padding-left:12px;border-left:2px solid rgba(95,216,180,.4)">{{ item.facts }}</div>
+                  </sc-if>
+                  <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.14em;color:#5c7396;text-transform:uppercase;margin:13px 0 8px">Sources · verify independently</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:7px">
+                    <sc-for list="{{ item.sources }}" as="src" hint-placeholder-count="2">
+                      <a href="{{ src.url }}" target="_blank" rel="noopener" onClick="{{ stop }}" style="font-family:'IBM Plex Mono';font-size:10.5px;color:#5fd8b4;border:1px solid rgba(95,216,180,.28);padding:4px 10px;border-radius:7px;display:inline-flex;align-items:center;gap:5px" style-hover="background:rgba(95,216,180,.1)">{{ src.name }} ↗</a>
+                    </sc-for>
+                  </div>
+                  <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.11em;color:#526d90;margin-top:11px">▾ COLLAPSE</div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </sc-if>
+
+        <sc-if value="{{ showHistory }}" hint-placeholder-val="{{ false }}">
+          <div style="font-family:'Newsreader';font-size:15.5px;line-height:1.7;color:#c4d3e6;margin-bottom:10px">{{ historyIntro }}</div>
+          <sc-for list="{{ historyParagraphs }}" as="hp" hint-placeholder-count="2">
+            <div style="font-family:'Newsreader';font-size:14px;line-height:1.7;color:#a9bdd6;margin-bottom:12px">{{ hp }}</div>
+          </sc-for>
+          <div style="font-family:'IBM Plex Mono';font-size:9.5px;letter-spacing:.14em;color:#5c7396;text-transform:uppercase;margin:20px 0 14px">Timeline</div>
+          <div style="position:relative;padding-left:20px;border-left:1px solid rgba(120,160,210,.2)">
+            <sc-for list="{{ historyTimeline }}" as="tl" hint-placeholder-count="4">
+              <div style="position:relative;margin-bottom:16px">
+                <span style="position:absolute;left:-25px;top:4px;width:8px;height:8px;border-radius:50%;background:#5fd8b4;box-shadow:0 0 8px #5fd8b4"></span>
+                <div style="font-family:'IBM Plex Mono';font-size:12px;color:#5fd8b4;font-weight:500">{{ tl.year }}</div>
+                <div style="font-family:'Newsreader';font-size:13.5px;line-height:1.45;color:#b9cae0;margin-top:2px">{{ tl.event }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ help }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeInfo }}" style="position:absolute;inset:0;z-index:41;background:rgba(3,6,12,.74);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:32px;animation:fadeUp .3s ease">
+      <div onClick="{{ stop }}" id="tg-modal" style="width:720px;max-width:94vw;max-height:86vh;overflow-y:auto;background:rgba(9,15,26,.97);border:1px solid rgba(120,160,210,.2);border-radius:18px;padding:30px 34px;box-shadow:0 30px 90px rgba(0,0,0,.6)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+          <div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;color:#eef4fb">Info &amp; glossary</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:#6f86a6;text-transform:uppercase;margin-top:5px">What every term &amp; section means</div>
+          </div>
+          <div onClick="{{ closeInfo }}" style="cursor:pointer;width:32px;height:32px;border-radius:50%;border:1px solid rgba(120,160,210,.2);display:flex;align-items:center;justify-content:center;color:#9fb4d0;font-size:14px;flex:none" style-hover="background:rgba(255,255,255,.07)">✕</div>
+        </div>
+
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;color:#5fd8b4;text-transform:uppercase;margin:24px 0 12px">How to use it</div>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <sc-for list="{{ howto }}" as="h" hint-placeholder-count="5">
+            <div style="display:flex;gap:12px;align-items:flex-start">
+              <span style="flex:none;width:22px;height:22px;border-radius:50%;background:rgba(95,216,180,.14);border:1px solid rgba(95,216,180,.4);color:#5fd8b4;font-family:'IBM Plex Mono',monospace;font-size:11px;display:flex;align-items:center;justify-content:center">{{ h.step }}</span>
+              <div style="font-family:'Newsreader',serif;font-size:14.5px;line-height:1.55;color:#bccbe0;padding-top:1px">{{ h.text }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;color:#5fd8b4;text-transform:uppercase;margin:26px 0 12px">Glossary of terms</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px 26px">
+          <sc-for list="{{ glossary }}" as="g" hint-placeholder-count="6">
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:600;color:#eef4fb">{{ g.term }}</div>
+              <div style="font-family:'Newsreader',serif;font-size:13.5px;line-height:1.5;color:#a2b6cf;margin-top:3px">{{ g.def }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(120,160,210,.12);font-family:'Newsreader',serif;font-size:13px;line-height:1.55;color:#8298b6">TERRA · LIVE aims to stay neutral: contested claims are attributed to each side and every story links to its original sources. Always verify specifics — especially AI-generated briefs — against those sources.</div>
+        <div style="margin-top:12px;font-family:'Newsreader',serif;font-size:13px;line-height:1.55;color:#8298b6"><span style="color:#a9c8f0;font-weight:600">Map accuracy.</span> The ⊞ Flat map view uses the <span style="color:#c3d2e6">Equal Earth projection</span> — the equal-area projection behind NASA’s <span style="color:#c3d2e6">Equal Earth Wall Map</span> (Šavrič, Patterson &amp; Jenny, 2018). It renders every continent and country at its true relative size, so the areas shown are factually accurate — unlike Mercator-style maps that exaggerate regions near the poles.</div>
+        <div onClick="{{ openGuide }}" style="cursor:pointer;margin-top:20px;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;color:#bfeeda;border:1px solid rgba(95,216,180,.35);padding:11px;border-radius:11px" style-hover="background:rgba(95,216,180,.1)">◎ Open the step-by-step guide</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ coach }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ guideCenter }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;inset:0;z-index:40;background:rgba(3,6,12,.72);backdrop-filter:blur(3px)"></div>
+      <div id="tg-guide" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:42;width:460px;max-width:90vw;background:rgba(9,15,26,.97);border:1px solid rgba(120,160,210,.2);border-radius:18px;padding:28px 30px;box-shadow:0 30px 90px rgba(0,0,0,.6)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.16em;color:#6f86a6;text-transform:uppercase">Guided tour · {{ guideStepLabel }}</div>
+          <div onClick="{{ dismissCoach }}" class="tg-golive" style="cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;color:#6f86a6;text-transform:uppercase" style-hover="color:#9fb4d0">Skip ✕</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:13px;margin-top:20px">
+          <span style="flex:none;width:46px;height:46px;border-radius:13px;background:rgba(95,216,180,.12);border:1px solid rgba(95,216,180,.32);display:flex;align-items:center;justify-content:center;color:#5fd8b4;font-size:20px">{{ guideIcon }}</span>
+          <div class="tg-gtitle" style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:21px;color:#eef4fb;line-height:1.15">{{ guideTitle }}</div>
+        </div>
+        <div style="font-family:'Newsreader',serif;font-size:15.5px;line-height:1.62;color:#a9bdd6;margin-top:16px">{{ guideBody }}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:20px">
+          <sc-for list="{{ guideDots }}" as="d" hint-placeholder-count="7">
+            <span style="height:7px;width:{{ d.w }};border-radius:100px;background:{{ d.bg }};transition:all .25s ease"></span>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:22px">
+          <div onClick="{{ nextGuide }}" style="cursor:pointer;flex:1;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;color:#05121a;background:#5fd8b4;padding:12px;border-radius:11px" style-hover="background:#7febc9">{{ guideNextLabel }}</div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ guideSpot }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:{{ spotTop }};left:{{ spotLeft }};width:{{ spotW }};height:{{ spotH }};border-radius:12px;border:2px solid #5fd8b4;box-shadow:0 0 0 9999px rgba(3,6,12,.76),0 0 22px rgba(95,216,180,.5);z-index:40;pointer-events:none;transition:all .32s cubic-bezier(.2,.7,.2,1)"></div>
+      <div style="position:absolute;top:{{ tipTop }};left:{{ tipLeft }};transform:{{ tipTransform }};width:{{ tipW }};z-index:42;background:rgba(9,15,26,.98);border:1px solid rgba(95,216,180,.32);border-radius:15px;padding:20px 22px;box-shadow:0 24px 70px rgba(0,0,0,.6)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;color:#6f86a6;text-transform:uppercase">Guided tour · {{ guideStepLabel }}</div>
+          <div onClick="{{ dismissCoach }}" style="cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.1em;color:#6f86a6;text-transform:uppercase" style-hover="color:#9fb4d0">Skip ✕</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:11px;margin-top:14px">
+          <span style="flex:none;width:38px;height:38px;border-radius:11px;background:rgba(95,216,180,.12);border:1px solid rgba(95,216,180,.32);display:flex;align-items:center;justify-content:center;color:#5fd8b4;font-size:17px">{{ guideIcon }}</span>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17.5px;color:#eef4fb;line-height:1.15">{{ guideTitle }}</div>
+        </div>
+        <div style="font-family:'Newsreader',serif;font-size:14.5px;line-height:1.6;color:#a9bdd6;margin-top:12px">{{ guideBody }}</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:16px">
+          <sc-for list="{{ guideDots }}" as="d" hint-placeholder-count="7">
+            <span style="height:6px;width:{{ d.w }};border-radius:100px;background:{{ d.bg }};transition:all .25s ease"></span>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:9px;margin-top:18px">
+          <sc-if value="{{ guideShowBack }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ prevGuide }}" style="cursor:pointer;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;color:#9fb4d0;border:1px solid rgba(120,160,210,.25);padding:10px 16px;border-radius:10px" style-hover="background:rgba(255,255,255,.05)">← Back</div>
+          </sc-if>
+          <div onClick="{{ nextGuide }}" style="cursor:pointer;flex:1;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;color:#05121a;background:#5fd8b4;padding:11px;border-radius:10px" style-hover="background:#7febc9">{{ guideNextLabel }}</div>
+        </div>
+      </div>
+    </sc-if>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;},&quot;atmosphereColor&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#3d7fb8&quot;,&quot;options&quot;:[&quot;#3d7fb8&quot;,&quot;#5fd8b4&quot;,&quot;#a98de6&quot;,&quot;#e5654d&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Globe&quot;},&quot;rotateSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.35,&quot;min&quot;:0,&quot;max&quot;:1.5,&quot;step&quot;:0.05,&quot;unit&quot;:&quot;x&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Globe&quot;},&quot;ringPulse&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Globe&quot;}}">
+class Component extends DCLogic {
+  state = { selectedId:null, tab:'news', activeCat:'all', expandedId:null, toast:'', rotating:true, ready:false,
+            query:'', heat:false, arcs:true, dayNight:false, facts:{}, bookmarks:[], scrub:null,
+            aiById:{}, aiLoading:false, coach:false, narrow:false, railMin:false, help:false, guideStep:0, guideRect:null, flat:false };
+  GUIDE = [
+    {icon:'●', target:null, place:'center', title:'Welcome to TERRA · LIVE', body:'A living globe of the world’s news. This quick tour will point out each tool on screen — tap Next to step through it.'},
+    {icon:'⌕', target:'tg-search', place:'below', title:'1 · Find a place', body:'Type any city or country here and pick it from the list to fly straight there. You can also drag the globe to spin it and scroll to zoom.'},
+    {icon:'↔', target:'tg-tools', place:'below', title:'2 · Visual layers', body:'These toggles change the globe: ↔ Links connects related stories, ◭ Heat recolors countries by topic, and ☀ Sun shows the real-time day/night line.'},
+    {icon:'◉', target:'tg-rail', place:'left', title:'3 · Open a story', body:'These are the top stories right now. Click one — or any glowing hotspot on the globe — to open its panel. A pulsing ring means a MAJOR story. Use the ▾ chevron to minimize this list.'},
+    {icon:'▤', target:'tg-rail', place:'left', title:'4 · Read the news', body:'The panel opens with News & History tabs. Stories are newest-first; filter by category, click a headline to expand full detail and cited sources, and switch to “Just the facts”.'},
+    {icon:'⌛', target:'tg-time', place:'above', title:'5 · Time machine', body:'Drag this slider to replay how the week’s hotspots appeared day by day. Press GO LIVE to jump back to now.'},
+    {icon:'★', target:'tg-help', place:'below', title:'6 · Guide, Info & more', body:'Reopen this tour with ◎ Guide, or open ⓘ Info for a full glossary of every term. Inside any place you can Follow (★) it and Share (⇗) a direct link.'}
+  ];
+  globeRef = React.createRef();
+  NOW = new Date('2026-07-13T20:00:00Z');
+  nameMap = {'United States of America':'dc','Ukraine':'kyiv','Russia':'moscow','Iran':'tehran','France':'paris','United Kingdom':'london','China':'beijing','India':'delhi','Japan':'tokyo','Nigeria':'lagos','Venezuela':'caracas','Israel':'jerusalem','Palestine':'gaza','Syria':'damascus','Lebanon':'beirut','Turkey':'ankara','Türkiye':'ankara','Iraq':'baghdad','Qatar':'doha','Germany':'berlin','Spain':'madrid','Brazil':'brasilia','Argentina':'buenosaires','Peru':'lima','Mexico':'mexico','Canada':'toronto','Morocco':'rabat','Egypt':'cairo','South Korea':'seoul','Australia':'sydney','South Africa':'joburg','Indonesia':'jakarta','Philippines':'manila','Pakistan':'islamabad','Taiwan':'taipei','Sri Lanka':'colombo','Bangladesh':'dhaka'};
+  CATS = {
+    politics:{label:'Politics',color:'#e6b34d'},
+    security:{label:'Conflict & Security',color:'#e5654d'},
+    technology:{label:'Technology',color:'#4dd0e6'},
+    science:{label:'Science',color:'#a98de6'},
+    health:{label:'Health',color:'#5de08f'},
+    environment:{label:'Environment',color:'#8ad14d'},
+    business:{label:'Business',color:'#4d90e6'},
+    culture:{label:'Culture',color:'#e68dc6'}
+  };
+  S = {
+    npr:{name:'NPR',url:'https://www.npr.org/sections/news'},
+    nprw:{name:'NPR World',url:'https://www.npr.org/sections/world/'},
+    cnn:{name:'CNN',url:'https://www.cnn.com/world'},
+    euro:{name:'Euronews',url:'https://www.euronews.com/news/international'},
+    fox:{name:'Fox News',url:'https://www.foxnews.com/politics/trump-arrives-nato-summit-iran-rift-looms-over-alliance-talks'},
+    bloom:{name:'Bloomberg',url:'https://www.bloomberg.com/news/articles/2026-07-03/takaichi-and-modi-deepen-ties-as-businesses-get-to-work-on-deals'},
+    ajk:{name:'Al Jazeera',url:'https://www.aljazeera.com/news/2026/7/6/russian-attacks-on-ukraine-kill-11-on-eve-of-nato-summit-authorities-say'},
+    ajr:{name:'Al Jazeera',url:'https://www.aljazeera.com/news/2026/7/7/russia-touts-war-with-nato-amid-losses-in-ukraine'},
+    punch:{name:'Punch NG',url:'https://punchng.com/'},
+    toi:{name:'Times of Israel',url:'https://www.timesofisrael.com/'},
+    ajme:{name:'Al Jazeera',url:'https://www.aljazeera.com/middle-east/'},
+    scr:{name:'UN Security Council Report',url:'https://www.securitycouncilreport.org/'},
+    acled:{name:'ACLED',url:'https://acleddata.com/'},
+    espn:{name:'ESPN',url:'https://www.espn.com/soccer/'},
+    rio:{name:'Rio Times',url:'https://www.riotimesonline.com/'},
+    cbc:{name:'CBC News',url:'https://www.cbc.ca/news/world/cusma-canada-mexico-9.7244946'},
+    time:{name:'TIME',url:'https://time.com/article/2026/07/02/us-declines-renewal-trade-pact-mexico-canada-impact/'},
+    csm:{name:'CS Monitor',url:'https://www.csmonitor.com/World/Americas/2026/0702/peru-president-fujimori-election-results-violence'},
+    aj2:{name:'Al Jazeera',url:'https://www.aljazeera.com/news/2026/6/30/keiko-fujimori-leads-in-peruvian-presidential-race-as-vote-count-concludes'},
+    espn2:{name:'ESPN',url:'https://www.espn.com/soccer/story/_/id/49334623/fifa-world-cup-semifinal-preview-predictions-odds-argentina-england-france-spain'},
+    usnews:{name:'U.S. News',url:'https://www.usnews.com/news/national-news/articles/2026-07-13/world-cup-2026-enters-its-final-four-with-favorites-left'},
+    bloom2:{name:'Bloomberg',url:'https://www.bloomberg.com/news/articles/2026-07-07/netanyahu-vows-israel-will-keep-occupying-lebanon-syria-gaza'},
+    dpost:{name:'The Defense Post',url:'https://thedefensepost.com/2026/07/01/israeli-troops-stay-lebanon-syria-gaza/'},
+    yahoo:{name:'Yahoo Sports',url:'https://sports.yahoo.com/soccer/live/world-cup-bracket-schedule-scores-results-live-updates-quarterfinals-203257966.html'},
+    cbs:{name:'CBS Sports',url:'https://www.cbssports.com/soccer/news/2026-fifa-world-cup-bracket-round-of-32-results-round-of-16-matchups-final/'},
+    uefa:{name:'UEFA',url:'https://www.uefa.com/european-qualifiers/news/02a6-20c3aa0fafe2-4a6b4459a3fc-1000--2026-world-cup-all-the-european-sides-group-stage-and-knock/'},
+    inq:{name:'Inquirer',url:'https://globalnation.inquirer.net/'},
+    bernama:{name:'BERNAMA',url:'https://asean.bernama.com/news.php?id=2577537'},
+    riobrief:{name:'Rio Times',url:'https://www.riotimesonline.com/asia-intelligence-brief-monday-july-13-2026/'},
+    pacnews:{name:'PACNEWS / AFP',url:'https://islandsbusiness.com/pacnews/pacnews-one-13-july-2026/'}
+  };
+
+  get DATA(){
+    const S=this.S;
+    return [
+      {id:'dc',name:'Washington, D.C.',country:'United States',region:'North America',coords:'38.9°N, 77.0°W',lat:38.9,lng:-77.04,importance:0.95,
+        blurb:'The U.S. capital dominated global headlines this week as an Iran ceasefire collapsed and markets reacted.',
+        news:[
+          {id:'dc1',cat:'business',date:'2026-07-08T13:00:00Z',title:'Oil prices jump and stocks slide after the U.S. declares its Iran ceasefire over',
+            detail:['Crude oil climbed and equities fell after the White House declared the ceasefire with Iran had ended, adding fresh uncertainty to an already shaky global outlook, NPR reported.','Oil had recently fallen back toward pre-war levels; analysts cited in coverage cautioned that renewed shipping risk in the Strait of Hormuz could keep prices volatile.'],
+            sources:[S.npr,S.cnn]},
+          {id:'dc2',cat:'politics',date:'2026-07-08T11:00:00Z',title:'Appeals court rejects bid to keep the president’s name on a D.C. arts institution',
+            detail:['The D.C. Circuit Court of Appeals denied the administration’s arguments seeking to stop the removal of the president’s name from a Washington arts institution, according to NPR.','The dispute is one of several legal fights over federal cultural bodies; the parties may seek further review.'],
+            sources:[S.npr]},
+          {id:'dc3',cat:'politics',date:'2026-07-08T09:00:00Z',title:'New U.S. passport features an image of President Trump',
+            detail:['A redesigned U.S. passport featuring an image of the president is available in person at the Washington Passport Agency by appointment, NPR reported.','Officials framed the design around the country’s 250th anniversary; critics questioned the choice.'],
+            sources:[S.npr]},
+          {id:'dc4',cat:'security',date:'2026-07-07T06:00:00Z',title:'U.S. declares the Iran ceasefire over and strikes more than 80 targets',
+            detail:['President Trump announced the end of a short-lived ceasefire with Iran, and the U.S. military carried out strikes on more than 80 targets while reimposing oil sanctions, according to U.S. officials cited by CNN and NPR.','The move followed reported attacks on merchant vessels near the Strait of Hormuz. Iran has not confirmed casualty figures, and independent verification of the strikes’ scope remains limited.'],
+            sources:[S.cnn,S.nprw]},
+          {id:'dc5',cat:'culture',date:'2026-07-04T23:00:00Z',title:'The United States marks 250 years of independence on the National Mall',
+            detail:['Fireworks lit the National Mall as the United States marked 250 years since its independence, per Euronews.','Commemorative events ran nationwide across the holiday weekend.'],
+            sources:[S.euro]}
+        ],
+        history:{intro:'Washington, D.C. was purpose-built as the seat of the U.S. federal government, laid out on land ceded by Maryland and Virginia along the Potomac.',
+          paragraphs:['Designer Pierre L’Enfant planned the city’s radial avenues and monumental core in the 1790s. The government relocated from Philadelphia in 1800, and the young capital was burned by British forces during the War of 1812.','Today the District houses Congress, the White House and the Supreme Court, and remains a focal point of national politics and protest — from the 1963 March on Washington to the present.'],
+          timeline:[{year:'1790',event:'Federal district established on the Potomac.'},{year:'1800',event:'Government moves to Washington from Philadelphia.'},{year:'1814',event:'British forces burn the city during the War of 1812.'},{year:'1963',event:'March on Washington for Jobs and Freedom.'},{year:'1973',event:'Home Rule Act grants an elected local government.'}]}},
+
+      {id:'kyiv',name:'Kyiv',country:'Ukraine',region:'Eastern Europe',coords:'50.5°N, 30.5°E',lat:50.45,lng:30.52,importance:0.98,
+        blurb:'Ukraine’s capital was hit by one of the deadliest strikes of the year as diplomacy and combat intensified around the NATO summit.',
+        news:[
+          {id:'k1',cat:'security',date:'2026-07-06T05:00:00Z',title:'Russian missile-and-drone barrage kills at least 20 in Kyiv on the eve of the NATO summit',
+            detail:['Ukraine’s military said Russia fired 68 missiles and launched 351 drones overnight, striking residential areas of Kyiv; authorities reported at least 20 killed with the toll expected to rise, per Al Jazeera.','Russia’s Defence Ministry described the operation as strikes on military and energy facilities. Casualty figures come from Ukrainian officials and could not be independently verified.'],
+            sources:[S.ajk,S.nprw]},
+          {id:'k2',cat:'security',date:'2026-07-06T04:00:00Z',title:'Ukrainian drones hit the Omsk refinery deep inside Siberia',
+            detail:['Ukraine’s General Staff said a long-range drone strike caused a fire at Russia’s Omsk refinery, roughly 2,700 km from Ukrainian-held territory — among the longest-range strikes of the war, Al Jazeera reported.','Omsk’s regional governor acknowledged drones reached an industrial hub without specifying the target; the full impact was still being assessed.'],
+            sources:[S.ajk]},
+          {id:'k3',cat:'politics',date:'2026-07-06T20:00:00Z',title:'Zelenskyy warns of further attacks and vows retaliation',
+            detail:['President Zelenskyy warned that another large Russian assault could come before the NATO summit and said Ukraine would “definitely” respond, according to Al Jazeera.','He has repeatedly pressed Western partners for stronger air-defence systems to close gaps exposed by recent barrages.'],
+            sources:[S.ajk]},
+          {id:'k4',cat:'politics',date:'2026-07-06T15:00:00Z',title:'Trump says a Ukraine resolution is “getting closer”; a new Putin call is expected',
+            detail:['Ahead of the NATO summit in Türkiye, Trump said a resolution to the war was “getting closer than people realise,” Al Jazeera reported.','The Kremlin said Putin and Trump had agreed to speak again soon. No settlement terms have been confirmed by either government.'],
+            sources:[S.ajr,S.fox]}
+        ],
+        history:{intro:'Kyiv is one of Europe’s oldest capitals and the historic heart of the medieval state of Kyivan Rus.',
+          paragraphs:['Founded well over a millennium ago on the Dnipro River, Kyiv became a major centre of Orthodox Christianity after the Christianization of Rus in 988. It later passed through Mongol, Polish-Lithuanian, Russian and Soviet control.','Ukraine declared independence in 1991. The 2014 Revolution of Dignity reoriented the country westward, and Russia’s full-scale invasion in February 2022 made Kyiv a wartime capital that has repeatedly come under aerial attack.'],
+          timeline:[{year:'988',event:'Christianization of Kyivan Rus.'},{year:'1934',event:'Becomes the Soviet capital of Ukraine.'},{year:'1991',event:'Ukraine declares independence.'},{year:'2014',event:'Revolution of Dignity.'},{year:'2022',event:'Russia launches a full-scale invasion.'}]}},
+
+      {id:'tehran',name:'Tehran & the Strait of Hormuz',country:'Iran',region:'Middle East',coords:'35.7°N, 51.4°E',lat:35.69,lng:51.39,importance:0.97,
+        blurb:'A collapsed ceasefire, U.S. strikes and attacks on shipping put Iran and a critical oil chokepoint at the center of global risk.',
+        news:[
+          {id:'t1',cat:'security',date:'2026-07-07T07:00:00Z',title:'U.S. strikes more than 80 targets in Iran and reimposes oil sanctions',
+            detail:['The U.S. launched strikes across Iran and reimposed oil sanctions after declaring the ceasefire over, according to CNN and NPR.','Iran’s official response and casualty details were limited in early reporting; several regional governments called for de-escalation.'],
+            sources:[S.cnn,S.npr]},
+          {id:'t2',cat:'security',date:'2026-07-07T05:00:00Z',title:'Iran strikes three vessels near the Strait of Hormuz',
+            detail:['Three merchant ships were struck near the Strait of Hormuz, with maritime authorities urging vessels to transit with caution and report suspicious activity, per Euronews and NPR.','The strait is one of the world’s most important oil-shipping arteries.'],
+            sources:[S.euro,S.nprw]},
+          {id:'t3',cat:'business',date:'2026-07-08T12:00:00Z',title:'Hormuz shipping risk rattles global oil markets',
+            detail:['Disruption in the Strait of Hormuz pushed oil prices higher and unsettled markets, NPR reported.','Roughly a fifth of the world’s seaborne oil passes through the strait, so even limited disruption moves prices worldwide.'],
+            sources:[S.npr]}
+        ],
+        history:{intro:'Tehran has been Iran’s capital since the late 18th century and is the political and economic heart of the country.',
+          paragraphs:['Chosen as capital by the Qajar dynasty in 1786, Tehran grew rapidly through the 20th century under the Pahlavi monarchy.','The 1979 Islamic Revolution reshaped Iran’s government and its relations with the West, and the Strait of Hormuz to the south has repeatedly been a flashpoint in regional and global tensions.'],
+          timeline:[{year:'1786',event:'Tehran becomes the Qajar capital.'},{year:'1925',event:'Start of the Pahlavi era.'},{year:'1979',event:'Islamic Revolution.'},{year:'1980–88',event:'Iran–Iraq War.'}]}},
+
+      {id:'moscow',name:'Moscow',country:'Russia',region:'Eastern Europe',coords:'55.8°N, 37.6°E',lat:55.75,lng:37.62,importance:0.9,
+        blurb:'Russia’s capital featured in sport and war headlines as athletes were reinstated and the Kremlin escalated its rhetoric.',
+        news:[
+          {id:'m1',cat:'politics',date:'2026-07-08T10:00:00Z',title:'IOC moves to reinstate Russian athletes, overturning a years-long ban',
+            detail:['The International Olympic Committee decision effectively overturns a ban tied to a state-sponsored doping scandal and Russia’s invasion of Ukraine, NPR reported.','The decision drew mixed reactions; details on eligibility and conditions were still emerging.'],
+            sources:[S.npr]},
+          {id:'m2',cat:'security',date:'2026-07-07T09:00:00Z',title:'Putin frames the conflict as a “war with NATO” amid disputed battlefield claims',
+            detail:['In televised remarks, Russia’s top general claimed large territorial gains while Putin cast the conflict as a war with NATO, Al Jazeera reported.','The Institute for the Study of War assessed Russia’s January–July gains at about 97 sq km — far below Moscow’s claims. Both sides’ battlefield statements are contested.'],
+            sources:[S.ajr]},
+          {id:'m3',cat:'politics',date:'2026-07-06T18:00:00Z',title:'Kremlin says Putin and Trump will speak again “in the near future”',
+            detail:['The Kremlin said the two leaders agreed to hold another call soon after a weekend conversation, per Al Jazeera.','No agenda was confirmed; Western officials urged caution about Russian intentions.'],
+            sources:[S.ajr]}
+        ],
+        history:{intro:'Moscow has been the political center of Russia for most of the past 500 years.',
+          paragraphs:['First mentioned in 1147, Moscow grew from a small settlement into the seat of the Grand Duchy of Muscovy and later the Russian Empire.','The capital moved to St Petersburg in 1712 but returned to Moscow in 1918 under Soviet rule; the city remained the capital after the USSR dissolved in 1991.'],
+          timeline:[{year:'1147',event:'First recorded mention of Moscow.'},{year:'1712',event:'Capital moves to St Petersburg.'},{year:'1918',event:'Capital returns to Moscow.'},{year:'1991',event:'Dissolution of the Soviet Union.'}]}},
+
+      {id:'beijing',name:'Beijing',country:'China',region:'East Asia',coords:'39.9°N, 116.4°E',lat:39.9,lng:116.4,importance:0.85,
+        blurb:'A rare missile test, a Hong Kong anniversary and a high-profile release kept China in the international spotlight.',
+        news:[
+          {id:'b1',cat:'security',date:'2026-07-07T08:00:00Z',title:'China conducts a rare submarine-launched ballistic missile test',
+            detail:['China carried out a rare submarine-launched ballistic missile test that drew objections from Pacific neighbors, CNN reported.','Beijing frames such tests as routine defence activity; several neighbouring governments called for transparency.'],
+            sources:[S.cnn]},
+          {id:'b2',cat:'politics',date:'2026-07-01T10:00:00Z',title:'Hong Kong marks 29 years since handover amid ongoing security-law debate',
+            detail:['Hong Kong marked the anniversary of its 1997 return to Chinese sovereignty as debate continued over the national security law imposed six years ago, NPR reported.','Officials say the law restored stability; critics say it curtailed free speech and expanded surveillance.'],
+            sources:[S.nprw]},
+          {id:'b3',cat:'culture',date:'2026-07-05T12:00:00Z',title:'Prominent underground-church pastor released after months in detention',
+            detail:['A pastor of a prominent underground church detained in October was released, NPR reported, following diplomatic attention.','Rights groups continue to track cases involving unregistered churches in China.'],
+            sources:[S.nprw]}
+        ],
+        history:{intro:'Beijing has served as China’s imperial and national capital across multiple dynasties and the modern era.',
+          paragraphs:['The Forbidden City, completed in 1420, anchored the imperial capital through the Ming and Qing dynasties.','The People’s Republic of China was proclaimed from Tiananmen in 1949, and Beijing has since hosted both the Summer (2008) and Winter (2022) Olympic Games.'],
+          timeline:[{year:'1420',event:'Forbidden City completed.'},{year:'1644',event:'Qing dynasty established.'},{year:'1949',event:'People’s Republic of China proclaimed.'},{year:'2008',event:'Summer Olympic Games.'},{year:'2022',event:'Winter Olympic Games.'}]}},
+
+      {id:'paris',name:'Paris',country:'France',region:'Western Europe',coords:'48.9°N, 2.4°E',lat:48.86,lng:2.35,importance:0.8,
+        blurb:'French politics, wildfire and a heatwave shopping frenzy shaped the week in and around the capital.',
+        news:[
+          {id:'p0',cat:'culture',date:'2026-07-12T20:00:00Z',title:'France meet Spain in a blockbuster World Cup semifinal on July 14',
+            detail:['World No. 1 France, led by Kylian Mbappé, reached the semifinals with a 2-0 win over Morocco — a rematch of the 2022 semifinal — and now face Spain in Dallas on July 14, per CBS Sports.','France has lost to Spain in the last two major-tournament finals, adding an edge to the meeting.'],
+            sources:[S.cbs,S.espn2]},
+          {id:'p1',cat:'politics',date:'2026-07-07T16:00:00Z',title:'Le Pen given a court-ordered monitor for embezzlement, but vows a presidential run',
+            detail:['A French court sentenced far-right leader Marine Le Pen to wear an electronic monitor in an embezzlement case; she said she will run for president next year, NPR and CNN reported.','Le Pen has framed the case as politically motivated; prosecutors dispute that characterization, and further appeals are possible.'],
+            sources:[S.nprw,S.cnn]},
+          {id:'p2',cat:'environment',date:'2026-07-04T14:00:00Z',title:'A major wildfire in France’s Aude burns hundreds of hectares',
+            detail:['A wildfire in the Aude department burned roughly 900 hectares as aircraft and firefighters battled the blaze and evacuees reached shelters, per Euronews.','Southern France has faced heightened fire risk during a summer of intense heat.'],
+            sources:[S.euro]},
+          {id:'p3',cat:'culture',date:'2026-07-03T11:00:00Z',title:'Heatwave sparks a scramble as Lidl offers cut-price fans',
+            detail:['Shoppers queued outside Lidl stores across France after the retailer put 200,000 fans and portable air conditioners on sale during a heatwave, Euronews reported.','Some stores saw scuffles and police were called to manage crowds.'],
+            sources:[S.euro]}
+        ],
+        history:{intro:'Paris grew from a Roman settlement into one of the world’s great cultural and political capitals.',
+          paragraphs:['Founded as Lutetia on the Île de la Cité, Paris became the French capital in the medieval period and the crucible of the 1789 Revolution.','Baron Haussmann’s 19th-century renovation gave the city its grand boulevards; Paris was liberated in 1944 and remains a global centre of art, ideas and diplomacy.'],
+          timeline:[{year:'52 BC',event:'Roman settlement of Lutetia.'},{year:'1163',event:'Construction of Notre-Dame begins.'},{year:'1789',event:'French Revolution begins.'},{year:'1889',event:'Eiffel Tower completed.'},{year:'1944',event:'Liberation of Paris.'}]}},
+
+      {id:'london',name:'London',country:'United Kingdom',region:'Western Europe',coords:'51.5°N, 0.1°W',lat:51.51,lng:-0.13,importance:0.78,
+        blurb:'Political turbulence and royal intrigue dominated the UK capital this week.',
+        news:[
+          {id:'l0',cat:'culture',date:'2026-07-11T22:00:00Z',title:'England edge Norway 2-1 to reach the World Cup semifinals',
+            detail:['Jude Bellingham scored twice, including an extra-time winner, as England beat Norway 2-1 in Miami to reach the semifinals, per UEFA and Yahoo Sports.','England will face Argentina in Atlanta on July 15, chasing a first World Cup title since 1966.'],
+            sources:[S.uefa,S.yahoo]},
+          {id:'l1',cat:'politics',date:'2026-07-07T13:00:00Z',title:'Nigel Farage quits Parliament amid a donations controversy, plans to seek re-election',
+            detail:['Nigel Farage resigned his seat amid a controversy over financial donations and said he would stand again, according to CNN.','Farage rejected wrongdoing; political opponents called for further scrutiny.'],
+            sources:[S.cnn]},
+          {id:'l2',cat:'politics',date:'2026-07-05T10:00:00Z',title:'U.S. Vice President Vance calls British politics “broken”',
+            detail:['Speaking about the UK, the U.S. vice president praised Britain but said something seemed “very broken” about its politics, Euronews reported.','British officials pushed back on the characterization.'],
+            sources:[S.euro]},
+          {id:'l3',cat:'culture',date:'2026-07-07T09:00:00Z',title:'Confusion surrounds Prince Harry’s UK visit and a Buckingham Palace stay',
+            detail:['Reports said Prince Harry was told he replied too late to stay at Buckingham Palace amid confusion over a UK visit, per CNN.','The palace has not detailed the arrangements.'],
+            sources:[S.cnn]}
+        ],
+        history:{intro:'London has been a major city for nearly two thousand years, from Roman Londinium to a modern global financial hub.',
+          paragraphs:['Founded by the Romans around 43 AD, London survived the Great Fire of 1666 and grew into the capital of a vast empire.','The city’s Underground opened in 1863, it endured the Blitz in 1940–41, and today it is one of the world’s leading centres of finance and culture.'],
+          timeline:[{year:'43 AD',event:'Romans found Londinium.'},{year:'1066',event:'Norman conquest of England.'},{year:'1666',event:'Great Fire of London.'},{year:'1863',event:'First underground railway opens.'},{year:'1940–41',event:'The Blitz.'}]}},
+
+      {id:'guam',name:'Guam & the Northern Marianas',country:'U.S. Pacific Territories',region:'Oceania',coords:'13.5°N, 144.8°E',lat:13.47,lng:144.75,importance:0.82,
+        blurb:'A Category 5 super typhoon battered these remote U.S. Pacific islands, forcing a major recovery effort.',
+        news:[
+          {id:'g1',cat:'environment',date:'2026-07-05T02:00:00Z',title:'Super Typhoon Bavi slams Guam and the Northern Mariana Islands',
+            detail:['The eye of Category 5 Super Typhoon Bavi passed over the island of Rota with winds above 240 km/h, also striking Guam, Tinian and Saipan, per Euronews.','Residents faced intense winds and severe flooding across the U.S. Pacific territories.'],
+            sources:[S.euro,S.nprw]},
+          {id:'g2',cat:'health',date:'2026-07-05T18:00:00Z',title:'Northern Marianas begins recovery from severe typhoon flooding',
+            detail:['Communities in the Northern Mariana Islands were dealing with the aftermath of severe flooding and wind damage, NPR reported.','Relief efforts and damage assessments were under way.'],
+            sources:[S.nprw]}
+        ],
+        history:{intro:'Guam and the Northern Marianas are the homeland of the Chamorro people and long-contested Pacific territories.',
+          paragraphs:['Settled by the Chamorro thousands of years ago, the islands became a Spanish colony in the 17th century and were ceded to the United States in 1898.','They were a major theatre of World War II in the Pacific and remain strategically important U.S. territories today.'],
+          timeline:[{year:'~1500 BC',event:'Chamorro settlement of the Marianas.'},{year:'1668',event:'Spanish mission established.'},{year:'1898',event:'Guam ceded to the United States.'},{year:'1941–44',event:'World War II occupation and liberation.'}]}},
+
+      {id:'delhi',name:'New Delhi',country:'India',region:'South Asia',coords:'28.6°N, 77.2°E',lat:28.61,lng:77.21,importance:0.72,
+        blurb:'India and Japan deepened a strategic partnership in a closely watched Delhi summit.',
+        news:[
+          {id:'d1',cat:'politics',date:'2026-07-03T05:00:00Z',title:'Modi and Japan’s Takaichi advance trade, energy and security cooperation',
+            detail:['India’s PM Narendra Modi and Japan’s PM Sanae Takaichi advanced cooperation on trade, energy and security during a New Delhi visit, Bloomberg reported.','The leaders emphasized a closer strategic partnership across the Indo-Pacific.'],
+            sources:[S.bloom]},
+          {id:'d2',cat:'business',date:'2026-07-03T07:00:00Z',title:'Indian and Japanese firms line up deals following the summit',
+            detail:['Companies from both countries began working on agreements after the leaders’ meeting, per Bloomberg.','Analysts see energy and infrastructure as likely focus areas.'],
+            sources:[S.bloom]}
+        ],
+        history:{intro:'Delhi has been the capital of numerous empires and is the seat of modern India’s government.',
+          paragraphs:['The area has hosted capitals from the Delhi Sultanate to the Mughals’ Shahjahanabad. The British moved their capital here from Calcutta in 1911.','New Delhi, designed by Edwin Lutyens, was inaugurated in 1931 and became the capital of independent India in 1947.'],
+          timeline:[{year:'1192',event:'Delhi Sultanate established.'},{year:'1638',event:'Mughal Shahjahanabad founded.'},{year:'1911',event:'British capital moved from Calcutta.'},{year:'1931',event:'New Delhi inaugurated.'},{year:'1947',event:'Capital of independent India.'}]}},
+
+      {id:'tokyo',name:'Tokyo',country:'Japan',region:'East Asia',coords:'35.7°N, 139.7°E',lat:35.68,lng:139.69,importance:0.66,
+        blurb:'Japan’s leadership pursued closer ties with India as part of a wider Indo-Pacific strategy.',
+        news:[
+          {id:'tk1',cat:'politics',date:'2026-07-03T06:00:00Z',title:'PM Takaichi casts India ties as a “big brother, little sister” partnership',
+            detail:['Japan’s PM Sanae Takaichi and India’s Modi described a warmer dynamic while advancing cooperation, Bloomberg reported.','Tokyo is seeking deeper economic and security links across the Indo-Pacific.'],
+            sources:[S.bloom]}
+        ],
+        history:{intro:'Tokyo grew from the castle town of Edo into one of the world’s largest metropolitan regions.',
+          paragraphs:['Edo became the seat of the Tokugawa shogunate in 1603 and one of the world’s biggest cities by the 18th century.','Renamed Tokyo in 1868, it rebuilt after the 1923 Great Kanto earthquake and wartime destruction to host the Olympics in 1964 and 2021.'],
+          timeline:[{year:'1603',event:'Tokugawa shogunate established at Edo.'},{year:'1868',event:'Edo renamed Tokyo.'},{year:'1923',event:'Great Kanto earthquake.'},{year:'1964',event:'Summer Olympic Games.'},{year:'2021',event:'Delayed 2020 Olympics held.'}]}},
+
+      {id:'lagos',name:'Lagos',country:'Nigeria',region:'West Africa',coords:'6.5°N, 3.4°E',lat:6.52,lng:3.38,importance:0.62,
+        blurb:'Seasonal flooding again exposed infrastructure strains in Africa’s largest city.',
+        news:[
+          {id:'la1',cat:'environment',date:'2026-07-08T08:00:00Z',title:'Seasonal floods return to Lagos amid drainage and planning failures',
+            detail:['Nigerian coverage highlighted recurring flood disasters driven by poor planning, blocked drainage and neglect, per Punch.','Heavy rains regularly overwhelm the city’s infrastructure and displace residents.'],
+            sources:[S.punch]}
+        ],
+        history:{intro:'Lagos is Nigeria’s largest city and economic engine, built around a coastal lagoon.',
+          paragraphs:['Originally a Yoruba/Awori settlement, Lagos became a centre of trade and later a British colonial possession from 1861.','It served as Nigeria’s capital until 1991, when the seat of government moved to Abuja, but remains the country’s commercial and cultural heart.'],
+          timeline:[{year:'15th c.',event:'Awori settlement established.'},{year:'1861',event:'British annexation of Lagos.'},{year:'1960',event:'Nigerian independence.'},{year:'1991',event:'Capital moves to Abuja.'}]}},
+
+      {id:'caracas',name:'Caracas',country:'Venezuela',region:'South America',coords:'10.5°N, 66.9°W',lat:10.48,lng:-66.9,importance:0.6,
+        blurb:'Venezuela grappled with earthquake recovery and a deepening debt crisis.',
+        news:[
+          {id:'c1',cat:'business',date:'2026-07-08T14:00:00Z',title:'Venezuela’s mounting debt problem draws fresh scrutiny',
+            detail:['Analysts flagged Venezuela’s ever-increasing debt burden as a growing concern, NPR reported.','The economy has struggled through years of contraction and sanctions.'],
+            sources:[S.npr]},
+          {id:'c2',cat:'science',date:'2026-07-06T12:00:00Z',title:'Venezuela expands burials as an earthquake toll remains uncertain',
+            detail:['A cemetery expanded burials for earthquake victims, many still unidentified, according to CNN reporting and imagery.','Authorities continued identification and recovery efforts.'],
+            sources:[S.cnn]}
+        ],
+        history:{intro:'Caracas is Venezuela’s capital and the birthplace of independence leader Simón Bolívar.',
+          paragraphs:['Founded in 1567 in a mountain valley near the Caribbean coast, Caracas became a centre of the South American independence movement.','Twentieth-century oil wealth drove rapid growth and urbanization; more recent decades have brought severe economic turmoil.'],
+          timeline:[{year:'1567',event:'City of Caracas founded.'},{year:'1783',event:'Simón Bolívar born in Caracas.'},{year:'1811',event:'Venezuela declares independence.'},{year:'20th c.',event:'Oil boom transforms the city.'}]}},
+
+      {id:'jerusalem',name:'Jerusalem',country:'Israel',region:'Middle East',coords:'31.8°N, 35.2°E',lat:31.78,lng:35.22,importance:0.93,
+        blurb:'Israel’s leadership signaled long-term military presence beyond its borders as regional ceasefires remained fragile.',
+        news:[
+          {id:'j1',cat:'security',date:'2026-07-07T09:00:00Z',title:'Netanyahu vows Israel will keep occupying parts of Lebanon, Syria and Gaza',
+            detail:['PM Benjamin Netanyahu said a key lesson of the October 2023 Hamas attack was the need for buffer zones inside neighboring territory rather than Israel’s own, Bloomberg reported.','The stationing of troops beyond Israel’s borders has left thousands dead and displaced more than a million in Lebanon alone, per Bloomberg, drawing condemnation from occupied neighbors and allies; Israel says the zones protect its communities from armed groups.'],
+            sources:[S.bloom2]},
+          {id:'j2',cat:'politics',date:'2026-07-01T12:00:00Z',title:'Defense minister says Israeli forces will stay in security zones “until further notice”',
+            detail:['Defense Minister Israel Katz said Israeli forces will remain in security zones in Lebanon, Syria and Gaza to protect Israeli communities, according to The Defense Post.','Katz also warned Iran it would be struck with “full force” if it attacked Israel over the Lebanon operations; the military says it has lost 38 soldiers and a civilian contractor in Lebanon since fighting resumed in March.'],
+            sources:[S.dpost]},
+          {id:'j3',cat:'politics',date:'2026-07-07T10:00:00Z',title:'UN Security Council to weigh stalled Gaza ceasefire roadmap',
+            detail:['A Security Council Report briefing noted talks on a 15-point roadmap for Gaza — including phased Hamas disarmament and IDF withdrawal — had not been finalised, with the transitional Palestinian administration still unable to enter Gaza.','Guarantor states Egypt, Qatar, Türkiye and the U.S. presented the plan; Hamas has said Israel remains in breach of ceasefire terms, while Israel accuses Hamas of stalling disarmament.'],
+            sources:[S.scr]}
+        ],
+        history:{intro:'Jerusalem is sacred to Judaism, Christianity and Islam and has been continuously inhabited for over 3,000 years.',
+          paragraphs:['The city has been besieged, destroyed and rebuilt repeatedly, from the First and Second Temple periods through Roman, Byzantine, Islamic, Crusader and Ottoman rule.','It was divided between Israel and Jordan after 1948 and came fully under Israeli control after the 1967 war; its status remains one of the most contested issues in the region.'],
+          timeline:[{year:'c. 1000 BC',event:'Traditional founding of the City of David.'},{year:'70 AD',event:'Destruction of the Second Temple.'},{year:'1187',event:'Saladin retakes Jerusalem from Crusaders.'},{year:'1948',event:'City divided after the Arab-Israeli War.'},{year:'1967',event:'Israel takes East Jerusalem in the Six-Day War.'}]}},
+
+      {id:'gaza',name:'Gaza',country:'Palestinian Territories',region:'Middle East',coords:'31.5°N, 34.5°E',lat:31.5,lng:34.47,importance:0.94,
+        blurb:'Months into a fragile ceasefire, Gaza’s reconstruction and governance remain stalled while humanitarian conditions stay severe.',
+        news:[
+          {id:'ga1',cat:'politics',date:'2026-07-06T08:00:00Z',title:'Gaza ceasefire holds but disarmament and governance talks stall',
+            detail:['ACLED reported that despite renewed ceasefire negotiations in Egypt in June, major issues remain unresolved, including Hamas’ disarmament, Israeli troop withdrawal and post-war governance.','Israeli forces reportedly occupy roughly 70% of Gaza’s territory; a Security Council briefing said the transitional Palestinian administration has been unable to enter the strip despite preparing its administrative structure.'],
+            sources:[S.acled,S.scr]},
+          {id:'ga2',cat:'health',date:'2026-07-08T07:00:00Z',title:'UN estimates $3.1 billion in first-year humanitarian needs for Gaza',
+            detail:['A Security Council report cited roughly $3.1 billion in first-year humanitarian needs and $17 billion in reconstruction pledges against recovery needs estimated by the UN, EU and World Bank.','International Stabilization Force deployment remains stalled, conditioned on progress in decommissioning Hamas weapons, though a small number of planning officers have begun arriving.'],
+            sources:[S.scr]},
+          {id:'ga3',cat:'security',date:'2026-07-11T00:00:00Z',title:'Rights concerns persist over unfulfilled ceasefire conditions',
+            detail:['CNN reported ongoing accounts of dire conditions in Gaza months into the ceasefire, alongside continued disputes between Israel and Hamas over compliance with its terms.','Both sides accuse each other of ceasefire violations; independent verification of on-the-ground conditions remains limited.'],
+            sources:[S.cnn]}
+        ],
+        history:{intro:'Gaza is one of the oldest continuously inhabited places on Earth, a historic trade link between Africa and the Levant.',
+          paragraphs:['Controlled successively by Egyptians, Philistines, Romans, Ottomans and the British, Gaza came under Egyptian administration after 1948 and Israeli occupation after 1967.','Israel withdrew settlers and troops in 2005; Hamas took control in 2007. The territory has since experienced repeated wars, blockade, and — since October 2023 — the deadliest conflict in its modern history.'],
+          timeline:[{year:'1948',event:'Egypt administers Gaza after the Arab-Israeli War.'},{year:'1967',event:'Israel occupies Gaza in the Six-Day War.'},{year:'2005',event:'Israel withdraws settlers and troops.'},{year:'2007',event:'Hamas takes control of Gaza.'},{year:'2023',event:'War begins after the October 7 attack.'}]}},
+
+      {id:'damascus',name:'Damascus',country:'Syria',region:'Middle East',coords:'33.5°N, 36.3°E',lat:33.51,lng:36.28,importance:0.75,
+        blurb:'Syria’s new government faces continued Israeli incursions in the south following the fall of the Assad regime.',
+        news:[
+          {id:'da1',cat:'security',date:'2026-07-01T10:00:00Z',title:'Israel continues incursions in southern Syria to enforce a demilitarised zone',
+            detail:['Israel has carried out repeated incursions and bombings in Syria since the overthrow of Bashar al-Assad, saying it seeks a demilitarised zone in the country’s south, according to The Defense Post.','Syria’s transitional government has objected to the continued presence; the scope and casualties of individual strikes are difficult to independently verify.'],
+            sources:[S.dpost]},
+          {id:'da2',cat:'politics',date:'2026-03-17T00:00:00Z',title:'Syria declines U.S. request to join military operations against Hezbollah',
+            detail:['Syria’s government was pressed by the United States to send troops into Lebanon alongside Israel to weaken Hezbollah but refused the offer, according to Wikipedia’s sourced account of the 2026 Lebanon war.','The decision reflected the new Syrian government’s effort to avoid direct entanglement in the Israel-Hezbollah conflict.'],
+            sources:[S.ajme]}
+        ],
+        history:{intro:'Damascus is considered one of the oldest continuously inhabited cities in the world.',
+          paragraphs:['A capital of the Umayyad Caliphate in the 7th–8th centuries, Damascus later passed through Abbasid, Mamluk and Ottoman rule before French mandate administration after World War I.','Syria gained independence in 1946. Decades of Assad-family rule ended in late 2024, and the country remains in a fragile political transition amid regional tension.'],
+          timeline:[{year:'661 AD',event:'Umayyad Caliphate established with Damascus as capital.'},{year:'1516',event:'Ottoman conquest of Syria.'},{year:'1946',event:'Syrian independence from French mandate.'},{year:'1971',event:'Hafez al-Assad takes power.'},{year:'2024',event:'Fall of the Assad government.'}]}},
+
+      {id:'beirut',name:'Beirut',country:'Lebanon',region:'Middle East',coords:'33.9°N, 35.5°E',lat:33.89,lng:35.5,importance:0.86,
+        blurb:'A fragile ceasefire has cut violence sharply but left roughly half a million Lebanese displaced amid ongoing exchanges of fire.',
+        news:[
+          {id:'be1',cat:'security',date:'2026-06-19T00:00:00Z',title:'Deadliest attack since the ceasefire kills four Israeli soldiers in southern Lebanon',
+            detail:['A Hezbollah drone attack on an Israeli armoured unit in Kfar Tebnit killed four soldiers, including a battalion commander — the deadliest incident against Israeli forces since the June ceasefire, according to ACLED.','Israeli strikes have remained concentrated in the Tyre, Bint Jbeil and Nabatieh districts south of the Litani River.'],
+            sources:[S.acled]},
+          {id:'be2',cat:'politics',date:'2026-07-02T00:00:00Z',title:'Displacement stays near 500,000 as evacuation orders cover a fifth of Lebanon',
+            detail:['Israeli-issued evacuation orders have spanned roughly 2,000 sq km — about a fifth of Lebanon — with displacement holding around 500,000 people as of early July, per sourced Wikipedia reporting on the 2026 Lebanon war.','Multiple border villages, including the center of Bint Jbeil, have been leveled by controlled demolitions since fighting resumed in March.'],
+            sources:[S.ajme]},
+          {id:'be3',cat:'politics',date:'2026-06-22T00:00:00Z',title:'Israel and Lebanon hold new Washington talks on withdrawal and Hezbollah’s future',
+            detail:['Following a June 17 U.S.-Iran memorandum that helped ease regional tensions, Israeli and Lebanese officials held discussions in Washington on withdrawal, border security and Hezbollah’s role, ACLED reported.','Diplomatic momentum has grown, but the ceasefire remains fragile with repeated attacks by both sides.'],
+            sources:[S.acled]}
+        ],
+        history:{intro:'Beirut has been a Mediterranean trading hub for more than 5,000 years and Lebanon’s capital since independence.',
+          paragraphs:['Long known as the “Paris of the Middle East,” Beirut thrived as a commercial and cultural center until a brutal 15-year civil war began in 1975.','The city rebuilt through the 1990s and 2000s but has since been battered by the 2020 port explosion, economic collapse, and renewed conflict with Israel tied to the wider regional war since 2023.'],
+          timeline:[{year:'1943',event:'Lebanese independence from France.'},{year:'1975–90',event:'Lebanese Civil War.'},{year:'2006',event:'July War between Israel and Hezbollah.'},{year:'2020',event:'Beirut port explosion.'},{year:'2024–26',event:'Renewed Israel-Hezbollah conflict.'}]}},
+
+      {id:'ankara',name:'Ankara',country:'Türkiye',region:'Middle East / Europe',coords:'39.9°N, 32.9°E',lat:39.93,lng:32.86,importance:0.68,
+        blurb:'Türkiye hosted NATO summit diplomacy over Ukraine and Iran while its national team made its deepest World Cup run in decades.',
+        news:[
+          {id:'an1',cat:'politics',date:'2026-07-06T00:00:00Z',title:'NATO summit in Türkiye becomes focal point for Ukraine and Iran diplomacy',
+            detail:['Leaders gathered in Türkiye for a NATO summit overshadowed by a deadly Russian strike on Kyiv and the collapse of the U.S.-Iran ceasefire, Al Jazeera reported.','Turkish officials, including Foreign Minister Hakan Fidan, have positioned Ankara as a mediating voice in both the Ukraine and Iran files.'],
+            sources:[S.ajk]},
+          {id:'an2',cat:'culture',date:'2026-06-25T00:00:00Z',title:'Türkiye eliminated from the World Cup in the Round of 32 by Paraguay',
+            detail:['Türkiye’s run at the 48-team World Cup ended in the Round of 32 against Paraguay, following group-stage wins over the United States, per CBS Sports results.','It marked a competitive group-stage showing for Türkiye at the expanded tournament co-hosted by the U.S., Canada and Mexico.'],
+            sources:[S.espn]}
+        ],
+        history:{intro:'Ankara became Turkey’s capital in 1923, replacing Istanbul as the seat of the new Turkish Republic.',
+          paragraphs:['An ancient Anatolian settlement known in antiquity as Ancyra, the city was chosen by Mustafa Kemal Atatürk as his revolutionary base and later the capital of the secular Turkish Republic.','Modern Ankara is Türkiye’s political center and a key hub for NATO and Middle East diplomacy given the country’s position spanning Europe and Asia.'],
+          timeline:[{year:'25 BC',event:'City becomes the Roman Ancyra.'},{year:'1919',event:'Atatürk launches the independence movement from Ankara.'},{year:'1923',event:'Ankara named capital of the Turkish Republic.'},{year:'1952',event:'Turkey joins NATO.'}]}},
+
+      {id:'baghdad',name:'Baghdad',country:'Iraq',region:'Middle East',coords:'33.3°N, 44.4°E',lat:33.31,lng:44.36,importance:0.55,
+        blurb:'Iraq fielded a national team at the World Cup while regional security concerns tied to Iran continue to weigh on the country.',
+        news:[
+          {id:'ba1',cat:'culture',date:'2026-06-22T00:00:00Z',title:'Iraq eliminated in the World Cup group stage after losses to France and Norway',
+            detail:['Iraq’s 2026 World Cup campaign ended in the group stage after defeats to France (3-0) and Norway (4-1), according to Sky Sports results coverage.','It was one of a small number of Iraqi appearances at a men’s World Cup in the tournament’s history.'],
+            sources:[S.fox]},
+          {id:'ba2',cat:'security',date:'2026-07-05T00:00:00Z',title:'Iraq navigates spillover risk from the Iran-U.S. confrontation',
+            detail:['Regional monitors including ACLED have flagged Iraq as exposed to spillover risk from the wider Iran-Israel-U.S. confrontation given Iranian-aligned armed groups operating on Iraqi territory.','Iraqi officials have repeatedly called for de-escalation to avoid the country becoming a battleground for outside powers.'],
+            sources:[S.acled]}
+        ],
+        history:{intro:'Baghdad was founded in 762 AD as the capital of the Abbasid Caliphate and became a global center of learning.',
+          paragraphs:['During its medieval “Golden Age,” Baghdad’s House of Wisdom made it a leading hub of science, mathematics and philosophy before the Mongols sacked the city in 1258.','More recently, Baghdad endured decades of war, sanctions, the 2003 U.S.-led invasion, and the fight against ISIS, and remains central to Iraq’s ongoing reconstruction.'],
+          timeline:[{year:'762',event:'Baghdad founded as the Abbasid capital.'},{year:'1258',event:'Mongols sack the city.'},{year:'1932',event:'Iraqi independence.'},{year:'2003',event:'U.S.-led invasion topples Saddam Hussein.'},{year:'2017',event:'Iraq declares victory over ISIS.'}]}},
+
+      {id:'doha',name:'Doha',country:'Qatar',region:'Middle East',coords:'25.3°N, 51.5°E',lat:25.29,lng:51.53,importance:0.6,
+        blurb:'Qatar continued its role as a key mediator on Gaza while its national team competed at the World Cup.',
+        news:[
+          {id:'do1',cat:'politics',date:'2026-07-06T00:00:00Z',title:'Qatar named among guarantor states pressing a 15-point Gaza roadmap',
+            detail:['A UN Security Council Report briefing named Qatar, alongside Egypt, Türkiye and the U.S., as guarantor states that presented a roadmap on Hamas disarmament and Gaza governance.','Doha has hosted much of the indirect diplomacy between Israel and Hamas throughout the conflict.'],
+            sources:[S.scr]},
+          {id:'do2',cat:'culture',date:'2026-06-18T00:00:00Z',title:'Qatar eliminated from the World Cup at the group stage',
+            detail:['Qatar was eliminated in the group stage of the 2026 World Cup after finishing behind Switzerland, Canada and Bosnia and Herzegovina, per CBS Sports results.','It marked Qatar’s second World Cup appearance after hosting the tournament in 2022.'],
+            sources:[S.espn]}
+        ],
+        history:{intro:'Doha grew from a small pearling and fishing port into a major global energy and diplomacy hub.',
+          paragraphs:['Qatar became a British protectorate in the early 20th century and gained independence in 1971, developing rapidly on the strength of massive natural gas reserves.','In recent decades Doha has positioned itself as a regional mediator — hosting talks on Afghanistan, Gaza and other conflicts — while hosting the 2022 FIFA World Cup.'],
+          timeline:[{year:'1916',event:'Qatar becomes a British protectorate.'},{year:'1971',event:'Qatari independence.'},{year:'1995',event:'Sheikh Hamad bin Khalifa Al Thani takes power.'},{year:'2022',event:'Qatar hosts the FIFA World Cup.'}]}},
+
+      {id:'berlin',name:'Berlin',country:'Germany',region:'Western Europe',coords:'52.5°N, 13.4°E',lat:52.52,lng:13.4,importance:0.6,
+        blurb:'A shock World Cup exit prompted soul-searching about German football’s decline as a global power.',
+        news:[
+          {id:'ber1',cat:'culture',date:'2026-06-29T00:00:00Z',title:'Germany eliminated by Paraguay on penalties in the Round of 32',
+            detail:['Germany drew 1-1 with Paraguay in the Round of 32 and lost on penalties, one of the tournament’s biggest upsets, according to ESPN and CBS Sports coverage.','Commentators described the exit as a sign Germany is “no longer a soccer superpower,” capping a shock early departure for a four-time champion.'],
+            sources:[S.espn,S.fox]}
+        ],
+        history:{intro:'Berlin has been the capital of a unified Germany, a divided Cold War city, and now the capital of reunified Germany.',
+          paragraphs:['Once the seat of the Prussian and German empires, Berlin was devastated in World War II and split into East and West sectors, symbolized by the Berlin Wall from 1961 to 1989.','Since reunification in 1990, Berlin has re-emerged as Germany’s political capital and a major European cultural and technology center.'],
+          timeline:[{year:'1871',event:'Berlin becomes capital of the German Empire.'},{year:'1945',event:'City divided among Allied powers after WWII.'},{year:'1961',event:'Construction of the Berlin Wall.'},{year:'1989',event:'Fall of the Berlin Wall.'},{year:'1990',event:'German reunification.'}]}},
+
+      {id:'madrid',name:'Madrid',country:'Spain',region:'Western Europe',coords:'40.4°N, 3.7°E',lat:40.42,lng:-3.7,importance:0.68,
+        blurb:'Spain advanced to the World Cup semifinals behind teenage star Lamine Yamal, chasing a third straight final over France.',
+        news:[
+          {id:'ma1',cat:'culture',date:'2026-07-10T00:00:00Z',title:'Spain beats Belgium 2-1 to reach the World Cup semifinals',
+            detail:['Substitute Mikel Merino scored a late winner as Spain beat Belgium 2-1 in the quarterfinal, setting up a semifinal against France on July 14 in Dallas, per ESPN.','Spain has not lost to France at recent major tournaments, having beaten them in 2024 and 2025 finals, per ESPN’s semifinal preview.'],
+            sources:[S.espn2]},
+          {id:'ma2',cat:'business',date:'2026-06-24T00:00:00Z',title:'World Cup co-hosting drives fresh trade and tourism attention for Spain’s 2030 bid',
+            detail:['With Spain set to co-host the 2030 World Cup alongside Portugal and Morocco, its strong 2026 run has amplified attention on the country’s football economy, per U.S. News coverage.','Spain’s federation has cited the current tournament as a springboard for 2030 preparations.'],
+            sources:[S.usnews]}
+        ],
+        history:{intro:'Madrid became Spain’s capital in 1561 under Philip II and grew into a major European political and cultural center.',
+          paragraphs:['The city endured a prolonged siege during the Spanish Civil War (1936–39) before decades of Franco-era rule, followed by a rapid democratic and economic transformation after 1975.','Today Madrid is one of Europe’s leading financial and cultural capitals, home to the Prado Museum and two of the world’s most decorated football clubs.'],
+          timeline:[{year:'1561',event:'Madrid named capital of Spain.'},{year:'1936–39',event:'Spanish Civil War.'},{year:'1975',event:'Death of Franco; transition to democracy.'},{year:'1986',event:'Spain joins the European Community.'}]}},
+
+      {id:'brasilia',name:'Brasília',country:'Brazil',region:'South America',coords:'15.8°S, 47.9°W',lat:-15.79,lng:-47.88,importance:0.55,
+        blurb:'A five-time champion, Brazil suffered an early World Cup exit that reopened questions about its national team’s rebuild.',
+        news:[
+          {id:'br1',cat:'culture',date:'2026-07-05T00:00:00Z',title:'Brazil knocked out of the World Cup by Norway in the Round of 16',
+            detail:['Erling Haaland scored twice as Norway beat Brazil 2-1 in the Round of 16, ending Brazil’s campaign earlier than expected, according to ESPN and U.S. News.','Coverage noted questions about Brazil’s underperformance alongside fellow early exit Germany, given their combined nine World Cup titles.'],
+            sources:[S.usnews,S.espn]}
+        ],
+        history:{intro:'Brasília was purpose-built in the late 1950s to be Brazil’s new capital, replacing Rio de Janeiro.',
+          paragraphs:['Inaugurated in 1960, the city was designed by Oscar Niemeyer and Lúcio Costa in a modernist plan meant to symbolize Brazil’s development ambitions.','A UNESCO World Heritage Site for its architecture, Brasília has been the seat of Brazil’s federal government for over six decades.'],
+          timeline:[{year:'1956',event:'Construction of Brasília begins.'},{year:'1960',event:'Brasília inaugurated as Brazil’s capital.'},{year:'1987',event:'City named a UNESCO World Heritage Site.'}]}},
+
+      {id:'buenosaires',name:'Buenos Aires',country:'Argentina',region:'South America',coords:'34.6°S, 58.4°W',lat:-34.6,lng:-58.38,importance:0.6,
+        blurb:'Defending champions Argentina, led by a record-breaking Lionel Messi, advanced to the World Cup semifinals.',
+        news:[
+          {id:'bu0',cat:'culture',date:'2026-07-12T23:00:00Z',title:'Argentina to face England in a marquee World Cup semifinal on July 15',
+            detail:['Defending champions Argentina, ranked No. 2 in the world, will meet No. 4 England in Atlanta on July 15 — the first World Cup with all top-four seeds in the semifinals, per Yahoo Sports.','It revives a storied rivalry 40 years after Maradona’s 1986 “Hand of God” quarterfinal; the France–Spain semifinal is set for July 14 in Dallas.'],
+            sources:[S.yahoo,S.fox]},
+          {id:'bu1',cat:'culture',date:'2026-07-12T04:00:00Z',title:'Argentina beats Switzerland 3-1 in extra time to reach the semifinals',
+            detail:['Julián Álvarez scored a 112th-minute golazo and Lautaro Martínez added a late dagger as Argentina beat 10-man Switzerland 3-1 in extra time in Kansas City, per Yahoo Sports.','It sent the defending champions to their sixth straight World Cup semifinal.'],
+            sources:[S.yahoo,S.espn]}
+        ],
+        history:{intro:'Buenos Aires is Argentina’s capital and one of Latin America’s great cultural capitals, birthplace of tango.',
+          paragraphs:['Founded by Spanish colonists in the 16th century, the city became the seat of the Viceroyalty of the Río de la Plata and later independent Argentina’s capital in 1880.','Argentina’s political and economic history has included periods of military rule, the 1976–83 “Dirty War,” and recurring economic crises, alongside global success in football, including three World Cup titles.'],
+          timeline:[{year:'1580',event:'Permanent Spanish settlement founded.'},{year:'1816',event:'Argentine independence declared.'},{year:'1880',event:'Buenos Aires federalized as national capital.'},{year:'1976–83',event:'Military dictatorship (“Dirty War”).'},{year:'1986,2022',event:'Argentina wins the FIFA World Cup.'}]}},
+
+      {id:'lima',name:'Lima',country:'Peru',region:'South America',coords:'12.0°S, 77.0°W',lat:-12.05,lng:-77.04,importance:0.72,
+        blurb:'Keiko Fujimori won one of the closest presidential races in Latin American history, capping a decade of Peruvian political turmoil.',
+        news:[
+          {id:'li1',cat:'politics',date:'2026-07-02T05:00:00Z',title:'Keiko Fujimori confirmed president-elect after a razor-thin, weeks-long count',
+            detail:['Fujimori won Peru’s runoff by just under 50,000 votes out of 18.4 million cast, one of the narrowest margins in recent Latin American history, per the Christian Science Monitor.','Her rival Roberto Sánchez has refused to concede, alleging irregularities without providing evidence, according to Al Jazeera; Peru has had nine presidents in the past decade.'],
+            sources:[S.csm,S.aj2]},
+          {id:'li2',cat:'security',date:'2026-07-03T00:00:00Z',title:'New president-elect faces scrutiny as a Fujimori-era death-squad case reopens',
+            detail:['Days after her win was confirmed, an appeals court ordered a retrial for members of the Colina Group death squad active during her late father’s presidency, NPR reported.','Political scientists cited by NPR noted Fujimori remains deeply unpopular despite winning, with more than 80% of voters opposing her in the first round.'],
+            sources:[S.npr]}
+        ],
+        history:{intro:'Lima was founded by Francisco Pizarro in 1535 and served as the capital of Spain’s Viceroyalty of Peru.',
+          paragraphs:['For nearly 300 years Lima was the most important administrative center of Spanish South America, home to a wealthy colonial elite and the seat of the Inquisition.','Peru declared independence in 1821, and Lima has since weathered military rule, the Shining Path insurgency of the 1980s–90s, and — over the past decade — nine changes of president amid chronic political instability.'],
+          timeline:[{year:'1535',event:'Lima founded by Francisco Pizarro.'},{year:'1821',event:'Peruvian independence declared.'},{year:'1980–2000',event:'Shining Path insurgency and Fujimori era.'},{year:'2016–2026',event:'A decade of political crisis and nine presidents.'}]}},
+
+      {id:'mexico',name:'Mexico City',country:'Mexico',region:'North America',coords:'19.4°N, 99.1°W',lat:19.43,lng:-99.13,importance:0.68,
+        blurb:'Mexico co-hosted the World Cup while navigating a tense trade review with the U.S. and Canada and mourning a deadly Teotihuacán shooting.',
+        news:[
+          {id:'me1',cat:'business',date:'2026-07-02T20:00:00Z',title:'U.S. declines to renew the USMCA trade pact on schedule',
+            detail:['The U.S., Mexico and Canada reached the treaty’s first mandated review date on July 1 without a renewal, as Washington seeks to address trade-deficit and market-access concerns, TIME reported.','Mexican President Claudia Sheinbaum and Canadian PM Mark Carney have coordinated a common position as bilateral tracks with Washington diverge, per CBC News.'],
+            sources:[S.time,S.cbc]},
+          {id:'me2',cat:'security',date:'2026-04-21T00:00:00Z',title:'Gunman kills a Canadian tourist and wounds 13 at Teotihuacán',
+            detail:['A Mexican gunman opened fire at the Teotihuacán pyramid site, killing a Canadian tourist and injuring 13 others before dying of a self-inflicted gunshot wound, according to CBC News.','Canadian PM Mark Carney thanked President Sheinbaum for her government’s cooperation in the aftermath.'],
+            sources:[S.cbc]}
+        ],
+        history:{intro:'Mexico City was built atop Tenochtitlan, the Aztec capital conquered by Spanish forces in 1521.',
+          paragraphs:['As the seat of the Viceroyalty of New Spain, the city became one of the wealthiest and most populous in the Americas for three centuries.','Since Mexican independence in 1821, the capital has grown into one of the world’s largest metropolitan areas and a leading Latin American economic and cultural center.'],
+          timeline:[{year:'1325',event:'Tenochtitlan founded by the Aztecs.'},{year:'1521',event:'Spanish conquest of Tenochtitlan.'},{year:'1821',event:'Mexican independence.'},{year:'1985',event:'Major earthquake devastates the city.'},{year:'2026',event:'Co-hosts the FIFA World Cup.'}]}},
+
+      {id:'toronto',name:'Toronto',country:'Canada',region:'North America',coords:'43.7°N, 79.4°W',lat:43.65,lng:-79.38,importance:0.55,
+        blurb:'Canada co-hosted the World Cup for the first time while facing pressure in a pivotal North American trade review.',
+        news:[
+          {id:'to1',cat:'business',date:'2026-07-02T20:00:00Z',title:'Canada faces steep U.S. tariffs as the CUSMA review opens without renewal',
+            detail:['Canada was hit with tariffs as high as 35% while the trilateral trade pact’s formal review opened July 1 without agreement, per TIME and CBC News.','PM Mark Carney has said “there’s not a lot of evidence” a tariff-free deal with the U.S. is achievable, while deepening trade coordination with Mexico.'],
+            sources:[S.time,S.cbc]},
+          {id:'to2',cat:'culture',date:'2026-06-28T00:00:00Z',title:'Co-host Canada reaches the World Cup Round of 32 for the first time',
+            detail:['Canada advanced from the group stage before losing to Morocco in the Round of 16, part of a historic run as tournament co-host, according to Yahoo Sports and CBS Sports results.','The tournament is projected to contribute roughly $2 billion to the Canadian economy, according to the Prime Minister’s Office.'],
+            sources:[S.espn,S.cbc]}
+        ],
+        history:{intro:'Toronto grew from a small British colonial outpost into Canada’s largest city and financial capital.',
+          paragraphs:['Founded as York in 1793 and renamed Toronto in 1834, the city expanded rapidly through 19th- and 20th-century immigration.','Today it is one of North America’s most diverse cities and a major hub for finance, media and technology.'],
+          timeline:[{year:'1793',event:'York founded by the British.'},{year:'1834',event:'Renamed Toronto and incorporated as a city.'},{year:'1904',event:'Great Toronto Fire.'},{year:'2026',event:'Co-hosts the FIFA World Cup.'}]}},
+
+      {id:'rabat',name:'Rabat',country:'Morocco',region:'North Africa',coords:'34.0°N, 6.8°W',lat:34.02,lng:-6.83,importance:0.58,
+        blurb:'Morocco’s national team reached the World Cup quarterfinals as the kingdom also emerged as a contributor to Gaza stabilization plans.',
+        news:[
+          {id:'ra1',cat:'culture',date:'2026-07-09T00:00:00Z',title:'Morocco’s deep World Cup run ends against France in the quarterfinals',
+            detail:['France beat Morocco 2-0 in the quarterfinal, ending a run that included penalty-shootout wins over the Netherlands and a win over co-host Canada, per ESPN.','It was one of Morocco’s best-ever World Cup showings, following its historic semifinal run in 2022.'],
+            sources:[S.espn,S.fox]},
+          {id:'ra2',cat:'politics',date:'2026-05-21T00:00:00Z',title:'Morocco pledges personnel to a proposed Gaza stabilization force',
+            detail:['A UN Security Council Report briefing noted Morocco among countries pledging personnel to the proposed International Stabilization Force for Gaza, with planning officers arriving to join preparations.','The force’s full deployment remains conditioned on progress in Hamas’ disarmament.'],
+            sources:[S.scr]}
+        ],
+        history:{intro:'Rabat has been Morocco’s capital since 1912 and blends Amazigh, Arab, Andalusian and French colonial heritage.',
+          paragraphs:['Founded as a fortified ribat in the 12th century, the city became a base for Barbary Coast privateers before French colonial administrators made it Morocco’s capital.','Morocco gained independence in 1956; the country will co-host the 2030 World Cup with Spain and Portugal.'],
+          timeline:[{year:'1146',event:'Almohad ribat established at Rabat.'},{year:'1912',event:'Rabat named capital under the French protectorate.'},{year:'1956',event:'Moroccan independence.'},{year:'2030',event:'Set to co-host the FIFA World Cup.'}]}},
+
+      {id:'cairo',name:'Cairo',country:'Egypt',region:'North Africa',coords:'30.0°N, 31.2°E',lat:30.04,lng:31.24,importance:0.6,
+        blurb:'Egypt reached its first World Cup knockout round in 92 years while continuing to mediate the Gaza ceasefire.',
+        news:[
+          {id:'ca1',cat:'culture',date:'2026-07-03T00:00:00Z',title:'Egypt reaches the World Cup Round of 16 for the first time since 1934',
+            detail:['Egypt beat Australia on penalties to reach the knockout stage for the first time in 92 years, before falling to Argentina 3-2, according to CBS Sports and Fox Sports results.','It marked only Egypt’s fourth World Cup appearance overall.'],
+            sources:[S.espn,S.fox]},
+          {id:'ca2',cat:'politics',date:'2026-06-01T00:00:00Z',title:'Egypt trains vetted Gaza police candidates under ceasefire plan',
+            detail:['As one of the plan’s guarantor states, Egypt is expected to train civilian police candidates vetted for Gaza’s transitional administration, per a UN Security Council Report briefing.','Egypt has also hosted renewed ceasefire negotiations between Israel and Hamas in June.'],
+            sources:[S.scr,S.acled]}
+        ],
+        history:{intro:'Cairo has been Egypt’s capital for over a thousand years and is the largest city in the Arab world.',
+          paragraphs:['Founded by the Fatimid dynasty in 969 AD near the ancient sites of Memphis and Giza, Cairo became a center of Islamic scholarship and trade.','Egypt gained independence from British influence in stages through the 20th century, with Cairo remaining its political, cultural and economic heart.'],
+          timeline:[{year:'969 AD',event:'Cairo founded by the Fatimid Caliphate.'},{year:'1250',event:'Mamluk Sultanate begins.'},{year:'1922',event:'Egyptian independence from Britain.'},{year:'1952',event:'Revolution ends the monarchy.'},{year:'2011',event:'Arab Spring uprising in Tahrir Square.'}]}},
+
+      {id:'seoul',name:'Seoul',country:'South Korea',region:'East Asia',coords:'37.6°N, 127.0°E',lat:37.57,lng:126.98,importance:0.5,
+        blurb:'South Korea’s World Cup campaign ended in the group stage as the country continues to navigate regional security dynamics.',
+        news:[
+          {id:'se1',cat:'culture',date:'2026-06-24T00:00:00Z',title:'South Korea eliminated in the World Cup group stage',
+            detail:['South Korea lost to Mexico and was eliminated in Group A of the 2026 World Cup, according to CBS Sports results coverage.','It capped a group stage in which co-host Mexico topped the table.'],
+            sources:[S.espn]}
+        ],
+        history:{intro:'Seoul has been Korea’s capital for over 600 years, since the founding of the Joseon dynasty.',
+          paragraphs:['Established as the Joseon capital in 1394, Seoul later endured Japanese colonial rule (1910–45) and was devastated during the Korean War (1950–53).','Post-war Seoul drove South Korea’s rapid industrialization, emerging as a global technology and cultural hub, notably hosting the 1988 Summer Olympics.'],
+          timeline:[{year:'1394',event:'Seoul becomes the Joseon capital.'},{year:'1910–45',event:'Japanese colonial rule.'},{year:'1950–53',event:'Korean War.'},{year:'1988',event:'Seoul hosts the Summer Olympics.'}]}},
+
+      {id:'sydney',name:'Sydney',country:'Australia',region:'Oceania',coords:'33.9°S, 151.2°E',lat:-33.87,lng:151.21,importance:0.5,
+        blurb:'Australia’s Socceroos narrowly missed the World Cup knockout stage on penalties against Egypt.',
+        news:[
+          {id:'sy1',cat:'culture',date:'2026-07-03T00:00:00Z',title:'Australia eliminated by Egypt on penalties in the Round of 32',
+            detail:['Australia drew 1-1 with Egypt in the Round of 32 and lost on penalties 4-2, ending its World Cup campaign, according to CBS Sports and Yahoo Sports results.','Australia had advanced from the group stage alongside the United States.'],
+            sources:[S.espn,S.fox]}
+        ],
+        history:{intro:'Sydney is Australia’s oldest and largest city, founded as a British penal colony in 1788.',
+          paragraphs:['The First Fleet established Sydney Cove as a convict settlement, which grew through the 19th-century gold rushes into a major port city.','Today Sydney is Australia’s financial and cultural capital, known globally for its harbor and Opera House, completed in 1973.'],
+          timeline:[{year:'1788',event:'British First Fleet establishes the colony.'},{year:'1851',event:'Gold rush accelerates growth.'},{year:'1973',event:'Sydney Opera House opens.'},{year:'2000',event:'Sydney hosts the Summer Olympics.'}]}},
+
+      {id:'joburg',name:'Johannesburg',country:'South Africa',region:'Southern Africa',coords:'26.2°S, 28.0°E',lat:-26.2,lng:28.05,importance:0.52,
+        blurb:'South Africa reached the World Cup knockout stage for the first time in its history before falling to co-host Canada.',
+        news:[
+          {id:'jb1',cat:'culture',date:'2026-06-24T00:00:00Z',title:'South Africa reaches the World Cup knockout stage for the first time ever',
+            detail:['A late strike from Thapelo Maseko helped South Africa finish second in its group and advance to the Round of 32 for the first time in the nation’s history, per ESPN.','South Africa was eliminated by co-host Canada 1-0 in the following round, according to CBS Sports.'],
+            sources:[S.espn,S.fox]}
+        ],
+        history:{intro:'Johannesburg grew from a single 1886 gold rush camp into Africa’s largest economic hub.',
+          paragraphs:['Founded after the discovery of gold on the Witwatersrand, the city became the industrial heart of South Africa and a center of the anti-apartheid struggle.','Since the end of apartheid in 1994, Johannesburg has remained South Africa’s largest city and financial capital, and hosted the 2010 FIFA World Cup final.'],
+          timeline:[{year:'1886',event:'Gold discovered on the Witwatersrand.'},{year:'1976',event:'Soweto uprising against apartheid.'},{year:'1994',event:'End of apartheid; first democratic elections.'},{year:'2010',event:'Hosts the FIFA World Cup final.'}]}},
+
+      {id:'islamabad',name:'Islamabad & Kashmir',country:'Pakistan',region:'South Asia',coords:'33.7°N, 73.1°E',lat:33.68,lng:73.05,importance:0.92,
+        blurb:'A day-old India–Pakistan ceasefire was rattled by explosions in Kashmir, reviving fears along the Line of Control.',
+        news:[
+          {id:'is1',cat:'security',date:'2026-07-13T09:00:00Z',title:'Explosions in Kashmir threaten a newly agreed India–Pakistan ceasefire',
+            detail:['Blasts in the disputed Kashmir region threatened a “total and immediate” ceasefire that India and Pakistan agreed on July 12 with U.S. mediation, according to the Rio Times Asia brief.','Residents near the Line of Control reported heightened fear and troop movements; both governments are investigating, and each side has historically blamed the other for such incidents. Independent verification remains limited.'],
+            sources:[S.riobrief]},
+          {id:'is2',cat:'politics',date:'2026-07-12T12:00:00Z',title:'India and Pakistan reach a U.S.-brokered truce after a missile exchange',
+            detail:['The July 12 ceasefire followed a recent missile attack and was hailed as a diplomatic breakthrough, per the Rio Times.','Diplomats were scrambling to salvage the truce within a day as tensions flared again along the frontier.'],
+            sources:[S.riobrief]}
+        ],
+        history:{intro:'Islamabad was purpose-built in the 1960s as Pakistan’s capital, replacing Karachi.',
+          paragraphs:['Pakistan was created in 1947 from the partition of British India, and Kashmir has been disputed with India ever since, sparking multiple wars.','Islamabad, designed as a planned city at the foot of the Margalla Hills, became the seat of government in 1967 and remains the political center of a nuclear-armed state of over 240 million people.'],
+          timeline:[{year:'1947',event:'Partition of British India creates Pakistan; Kashmir dispute begins.'},{year:'1967',event:'Islamabad becomes the capital.'},{year:'1998',event:'Pakistan conducts nuclear tests.'},{year:'2026',event:'U.S.-brokered ceasefire with India over Kashmir.'}]}},
+
+      {id:'taipei',name:'Taipei',country:'Taiwan',region:'East Asia',coords:'25.0°N, 121.6°E',lat:25.03,lng:121.57,importance:0.85,
+        blurb:'China announced military drills around Taiwan in response to a major U.S. arms deal, raising regional security fears.',
+        news:[
+          {id:'ta1',cat:'security',date:'2026-07-13T06:00:00Z',title:'China announces military exercises around Taiwan after a major U.S. arms deal',
+            detail:['Beijing said the exercises were a necessary response to a major U.S. weapons deal with Taipei, according to the Rio Times Asia brief.','China regards Taiwan as part of its territory and opposes foreign arms sales; Taiwan’s government views such deals as essential to its self-defence. Both sides dispute the other’s framing of the drills.'],
+            sources:[S.riobrief]},
+          {id:'ta2',cat:'security',date:'2026-07-06T10:00:00Z',title:'Pacific Island nations reject China’s ballistic missile test in the “blue continent”',
+            detail:['Pacific Island leaders — including nations indebted to Beijing — condemned China’s July 6 submarine-launched ballistic missile test, saying it landed in the heart of their shared ocean, per PACNEWS/AFP.','The nuclear-capable missile, fitted with a dummy warhead, reportedly landed between Nauru, Tuvalu and the Solomon Islands.'],
+            sources:[S.pacnews]}
+        ],
+        history:{intro:'Taipei is the capital of Taiwan, seat of the Republic of China government since 1949.',
+          paragraphs:['Taiwan was ceded to Japan in 1895 and returned to Chinese administration in 1945. In 1949, the Republic of China government relocated to Taipei after losing the Chinese civil war.','Taiwan has since developed into a democratic, high-tech economy — a global leader in semiconductors — while Beijing continues to claim the island as its own.'],
+          timeline:[{year:'1895',event:'Taiwan ceded to Japan.'},{year:'1945',event:'Returned to Chinese administration.'},{year:'1949',event:'ROC government relocates to Taipei.'},{year:'1996',event:'First direct presidential election.'}]}},
+
+      {id:'jakarta',name:'Jakarta',country:'Indonesia',region:'Southeast Asia',coords:'6.2°S, 106.8°E',lat:-6.21,lng:106.85,importance:0.55,
+        blurb:'Indonesia and Singapore reaffirmed freedom of navigation through two of the world’s busiest shipping straits.',
+        news:[
+          {id:'ja1',cat:'politics',date:'2026-07-07T04:00:00Z',title:'Indonesia and Singapore agree to keep the Malacca and Singapore straits open under UNCLOS',
+            detail:['President Prabowo Subianto and Singapore PM Lawrence Wong agreed to keep the Malacca and Singapore straits open for international shipping under the UN Convention on the Law of the Sea, per ANTARA via BERNAMA.','The straits are among the world’s most vital trade routes, carrying a large share of global seaborne commerce.'],
+            sources:[S.bernama]},
+          {id:'ja2',cat:'security',date:'2026-07-13T02:00:00Z',title:'Regional patrols target unflagged “stateless” fishing boats near Indonesian waters',
+            detail:['Pacific surveillance operations flagged illegal fishing by unmarked, unflagged vessels in waters bordering Indonesia and the Philippines, per PACNEWS/AFP.','Officials described boats operating with no markings, flags or call signs as effectively stateless.'],
+            sources:[S.pacnews]}
+        ],
+        history:{intro:'Jakarta, on the northwest coast of Java, has been a major trading port for centuries and is Indonesia’s capital.',
+          paragraphs:['Known as Batavia under Dutch colonial rule, the city was the center of the Dutch East Indies until Indonesia declared independence in 1945.','Now one of the world’s largest urban areas, Jakarta faces severe subsidence and flooding, prompting a national plan to move the capital to a new city, Nusantara, in Borneo.'],
+          timeline:[{year:'1619',event:'Dutch establish Batavia.'},{year:'1945',event:'Indonesia declares independence.'},{year:'1949',event:'Dutch recognize Indonesian sovereignty.'},{year:'2022',event:'Law passed to relocate the capital to Nusantara.'}]}},
+
+      {id:'manila',name:'Manila',country:'Philippines',region:'Southeast Asia',coords:'14.6°N, 121.0°E',lat:14.6,lng:120.98,importance:0.62,
+        blurb:'A high-stakes impeachment trial of the vice president gripped the country weeks after a deadly school shooting.',
+        news:[
+          {id:'mn1',cat:'politics',date:'2026-07-13T05:00:00Z',title:'Vice President Sara Duterte’s impeachment trial reaches a pivotal fourth day',
+            detail:['Witnesses testified on the trial’s fourth day, with an NBI witness alleging that threats attributed to VP Sara Duterte pointed to an alleged plot against President Marcos, per the Inquirer.','Duterte’s camp said it would present witnesses to rebut the allegations. The accusations are contested and remain untested in the ongoing Senate proceedings.'],
+            sources:[S.inq]},
+          {id:'mn2',cat:'security',date:'2026-06-28T00:00:00Z',title:'Nation reckons with the deadly Tacloban school shooting',
+            detail:['The Inquirer reported that the view of schools as safe havens was shattered by a deadly school shooting in Tacloban the previous month, prompting national debate on campus safety.','Authorities continued their investigation in the weeks that followed.'],
+            sources:[S.inq]}
+        ],
+        history:{intro:'Manila has been the Philippine capital and a major Pacific trading hub since the Spanish colonial era.',
+          paragraphs:['Established as a Spanish city in 1571, Manila anchored the Manila–Acapulco galleon trade for 250 years before U.S. colonial rule began in 1898.','Devastated in World War II, the city rebuilt as the political and economic center of an archipelagic nation of more than 110 million people.'],
+          timeline:[{year:'1571',event:'Spanish found the city of Manila.'},{year:'1898',event:'U.S. takes control after the Spanish-American War.'},{year:'1945',event:'Battle of Manila in World War II.'},{year:'1946',event:'Philippine independence.'},{year:'1986',event:'People Power Revolution.'}]}},
+
+      {id:'colombo',name:'Colombo',country:'Sri Lanka',region:'South Asia',coords:'6.9°N, 79.9°E',lat:6.93,lng:79.85,importance:0.6,
+        blurb:'A new left-leaning president took charge of a nation still recovering from its worst economic crisis in decades.',
+        news:[
+          {id:'co1',cat:'politics',date:'2026-07-13T07:00:00Z',title:'Sri Lanka’s new Marxist-leaning president outlines emergency economic measures',
+            detail:['A Marxist-leaning leader was sworn in as president and set out his first economic emergency measures for a country still recovering from a sovereign default, per the Rio Times Asia brief.','Sri Lanka defaulted on its foreign debt in 2022 amid a severe currency and fuel crisis.'],
+            sources:[S.riobrief]}
+        ],
+        history:{intro:'Colombo is Sri Lanka’s commercial capital and largest city, a port coveted by successive colonial powers.',
+          paragraphs:['Controlled in turn by Portuguese, Dutch and British colonizers, Colombo became the capital of British Ceylon. Sri Lanka gained independence in 1948.','A 26-year civil war ended in 2009; a devastating economic crisis in 2022 forced a debt default and toppled the government, beginning a difficult recovery.'],
+          timeline:[{year:'1505',event:'Portuguese arrive at Colombo.'},{year:'1815',event:'British take full control of Ceylon.'},{year:'1948',event:'Independence from Britain.'},{year:'2009',event:'End of the civil war.'},{year:'2022',event:'Sovereign debt default and mass protests.'}]}},
+
+      {id:'dhaka',name:'Dhaka',country:'Bangladesh',region:'South Asia',coords:'23.8°N, 90.4°E',lat:23.81,lng:90.41,importance:0.58,
+        blurb:'Mass protests demanding justice for a murdered child pushed for stronger child-safety laws.',
+        news:[
+          {id:'dh1',cat:'politics',date:'2026-07-13T08:00:00Z',title:'Bangladeshis rally to demand justice for a murdered child and stronger safety laws',
+            detail:['People poured into the streets demanding justice after the murder of a child, with a protest movement pressing for action on child-safety legislation, per the Rio Times Asia brief.','The demonstrations added to a tense national mood amid wider regional anxiety.'],
+            sources:[S.riobrief]}
+        ],
+        history:{intro:'Dhaka is the capital of Bangladesh and one of the most densely populated cities in the world.',
+          paragraphs:['A Mughal provincial capital famed for its muslin trade, Dhaka later came under British and then Pakistani administration.','Bangladesh won independence from Pakistan in 1971 after a brutal liberation war, and Dhaka has since grown into a megacity central to the global garment industry.'],
+          timeline:[{year:'1608',event:'Dhaka becomes a Mughal provincial capital.'},{year:'1947',event:'Becomes capital of East Pakistan.'},{year:'1971',event:'Bangladesh wins independence.'},{year:'2013',event:'Rana Plaza collapse spurs garment-industry reform.'}]}}
+    ];
+  }
+
+  CLUSTERS = [
+    {id:'ukraine',color:'#e5654d',ids:['kyiv','moscow','ankara']},
+    {id:'iran',color:'#e6b34d',ids:['dc','tehran','jerusalem','moscow']},
+    {id:'gaza',color:'#e5654d',ids:['jerusalem','gaza','beirut','damascus','doha','cairo','rabat']},
+    {id:'worldcup',color:'#e68dc6',ids:['buenosaires','london','paris','madrid','berlin','brasilia','tokyo','seoul','sydney','joburg','baghdad','toronto','mexico']},
+    {id:'kashmir',color:'#4dd0e6',ids:['islamabad','delhi','taipei']},
+    {id:'trade',color:'#4d90e6',ids:['dc','toronto','mexico']}
+  ];
+  LEAN = {'NPR':'c','NPR World':'c','CNN':'c','Euronews':'c','Fox News':'r','Bloomberg':'c','Al Jazeera':'i','Punch NG':'i','Times of Israel':'c','UN Security Council Report':'o','ACLED':'o','ESPN':'o','Rio Times':'i','CBC News':'c','TIME':'c','CS Monitor':'c','U.S. News':'c','The Defense Post':'o','Yahoo Sports':'o','CBS Sports':'o','UEFA':'o','Inquirer':'i','BERNAMA':'i','PACNEWS / AFP':'i'};
+  LEANMETA = {c:{label:'Broadsheet / broadcast',color:'#9fb4d0'},r:{label:'Right-leaning',color:'#e5654d'},l:{label:'Left-leaning',color:'#4d90e6'},i:{label:'International',color:'#a98de6'},o:{label:'Official / specialist',color:'#5de08f'}};
+
+  componentDidMount(){
+    this._data = this.DATA;
+    this.maxDate = this.NOW.getTime();
+    this.minDate = Math.min(...this._data.flatMap(l=>l.news.map(n=>new Date(n.date).getTime())));
+    let bm=[]; try{ bm=JSON.parse(localStorage.getItem('terra_bookmarks')||'[]'); }catch(e){}
+    const seen = (()=>{ try{ return localStorage.getItem('terra_seen'); }catch(e){ return '1'; } })();
+    const hashId = this.readHash();
+    this.setState({ bookmarks:bm, coach:!seen, narrow: window.innerWidth<980, selectedId: hashId||null });
+    this.initGlobe();
+    this._onResize=()=>{ this.sizeGlobe(); const n=window.innerWidth<980; if(n!==this.state.narrow) this.setState({narrow:n}); if(this.state.coach) this.scheduleMeasure(); };
+    window.addEventListener('resize', this._onResize);
+    if(!seen) this.scheduleMeasure();
+    this._onHash=()=>{ const id=this.readHash(); if(id) this.selectLocation(id,true); };
+    window.addEventListener('hashchange', this._onHash);
+  }
+  componentWillUnmount(){ window.removeEventListener('resize', this._onResize); window.removeEventListener('hashchange', this._onHash); clearTimeout(this._t); }
+  componentDidUpdate(){
+    if(!this.globe) return;
+    const p=this.props;
+    if(p.atmosphereColor) this.globe.atmosphereColor(p.atmosphereColor);
+    const c=this.globe.controls(); if(typeof p.rotateSpeed==='number' && !this._userStopped) c.autoRotateSpeed=p.rotateSpeed;
+    this.refreshGlobe();
+  }
+  readHash(){ const m=(typeof location!=='undefined'&&location.hash||'').match(/loc=([a-z]+)/i); return m?m[1]:null; }
+
+  hexA(hex,a){ const n=parseInt(hex.slice(1),16); const r=(n>>16)&255,g=(n>>8)&255,b=n&255; return `rgba(${r},${g},${b},${a})`; }
+  cutoffDate(){ return this.state.scrub ? new Date(this.state.scrub) : this.NOW; }
+  newsUpTo(l){ const c=this.cutoffDate(); return l.news.filter(n=>new Date(n.date)<=c).sort((a,b)=>new Date(b.date)-new Date(a.date)); }
+
+  initGlobe(){
+    const el=this.globeRef.current;
+    if(!el || !window.Globe){ setTimeout(()=>this.initGlobe(),120); return; }
+    if(this.globe) return;
+    const atmo=this.props.atmosphereColor || '#3d7fb8';
+    const spd=(typeof this.props.rotateSpeed==='number')?this.props.rotateSpeed:0.35;
+    const g=window.Globe({rendererConfig:{antialias:true,alpha:true,preserveDrawingBuffer:true}})(el)
+      .backgroundColor('rgba(0,0,0,0)')
+      .showAtmosphere(true).atmosphereColor(atmo).atmosphereAltitude(0.2)
+      .pointsData([]).pointLat('lat').pointLng('lng').pointColor('color')
+      .pointAltitude(d=>0.01+d.importance*0.055).pointRadius(d=>0.3+d.importance*0.25)
+      .pointResolution(20).pointsMerge(false)
+      .pointLabel(d=>`<div style="font-family:'Space Grotesk',sans-serif;background:rgba(6,12,22,.94);border:1px solid rgba(120,160,210,.3);padding:9px 12px;border-radius:9px;max-width:236px;color:#e8eef7;box-shadow:0 10px 34px rgba(0,0,0,.55)"><div style="font-size:9px;letter-spacing:.14em;color:${d.color};text-transform:uppercase;font-family:'IBM Plex Mono',monospace">${d.country}</div><div style="font-weight:600;font-size:14px;margin:3px 0 5px">${d.name}</div><div style="font-size:11.5px;line-height:1.4;color:#9fb4d0;font-family:'Newsreader',serif">${d.headline}</div><div style="margin-top:7px;font-size:9px;color:${d.color};font-family:'IBM Plex Mono',monospace">CLICK TO OPEN ▸</div></div>`)
+      .onPointClick(d=>this.selectLocation(d.id))
+      .ringLat('lat').ringLng('lng')
+      .ringColor(d=>{const c=d.color; return t=>this.hexA(c, Math.max(0,1-t)*0.72);})
+      .ringMaxRadius(d=>2.4+d.importance*4).ringPropagationSpeed(1.8).ringRepeatPeriod(d=>900+(1-d.importance)*700)
+      .arcStartLat('sLat').arcStartLng('sLng').arcEndLat('eLat').arcEndLng('eLng')
+      .arcColor('color').arcAltitudeAutoScale(0.45).arcStroke(0.55)
+      .arcDashLength(0.45).arcDashGap(0.25).arcDashAnimateTime(2600).arcsTransitionDuration(400);
+    this.globe=g; window.__globe=g;
+    const gm=g.globeMaterial(); if(gm&&gm.color){ gm.color.set('#0a1930'); if(gm.emissive)gm.emissive.set('#071324'); gm.shininess=8; }
+    g.pointOfView({lat:22,lng:12,altitude:2.5});
+    const c=g.controls(); c.autoRotate=true; c.autoRotateSpeed=spd; c.enableDamping=true; c.minDistance=180; c.maxDistance=620;
+    el.addEventListener('pointerdown',()=>{ if(this.globe){ this.globe.controls().autoRotate=false; this._userStopped=true; if(this.state.rotating) this.setState({rotating:false}); }});
+    setTimeout(()=>{ const dir=[],amb=[]; try{ g.scene().traverse(o=>{ if(o.isDirectionalLight)dir.push(o); else if(o.isAmbientLight)amb.push(o); }); }catch(e){} this._lights={dir,amb,dirI:dir.map(l=>l.intensity),ambI:amb.map(l=>l.intensity),dirPos:dir.map(l=>l.position.clone())}; this.refreshGlobe(); },220);
+    this.sizeGlobe();
+    this.setState({ready:true});
+    this.refreshGlobe();
+    this.addPolys();
+  }
+
+  refreshGlobe(){
+    const g=this.globe; if(!g) return;
+    const CATS=this.CATS, DATA=this._data;
+    const active = DATA.map(l=>({l,nn:this.newsUpTo(l)})).filter(x=>x.nn.length);
+    const pts = active.map(({l,nn})=>({id:l.id,lat:l.lat,lng:l.lng,importance:l.importance,name:l.name,country:l.country,color:CATS[nn[0].cat].color,headline:nn[0].title}));
+    g.pointsData(pts);
+    const pulse=this.props.ringPulse!==false;
+    g.ringsData(pulse ? active.filter(x=>x.l.importance>=0.82).map(({l,nn})=>({lat:l.lat,lng:l.lng,importance:l.importance,color:CATS[nn[0].cat].color})) : []);
+    let arcs=[];
+    if(this.state.arcs){
+      const has=id=>active.find(a=>a.l.id===id);
+      const pos=id=>DATA.find(d=>d.id===id);
+      const selId=this.state.selectedId;
+      this.CLUSTERS.forEach(cl=>{
+        const ids=cl.ids.filter(has); const hub=ids[0]; if(!hub) return;
+        ids.slice(1).forEach(id=>{
+          const a=pos(hub), b=pos(id); if(!a||!b) return;
+          const touch = selId && (id===selId||hub===selId);
+          const dim = selId && !touch;
+          arcs.push({sLat:a.lat,sLng:a.lng,eLat:b.lat,eLng:b.lng,color: dim?this.hexA(cl.color,0.05):this.hexA(cl.color, touch?0.95:0.3)});
+        });
+      });
+    }
+    g.arcsData(arcs);
+    if(this._feats) this.paintPolys();
+    this.applySun();
+  }
+
+  paintPolys(){
+    const g=this.globe, nm=this.nameMap, DATA=this._data, CATS=this.CATS;
+    const base=f=> nm[f.properties.name] ? 'rgba(46,92,142,0.92)' : 'rgba(27,52,84,0.82)';
+    const heat=this.state.heat, hov=this._hoverFeat;
+    const topCat=l=>{ const nn=this.newsUpTo(l); return nn[0]?nn[0].cat:null; };
+    g.polygonCapColor(f=>{
+      if(f===hov) return 'rgba(95,216,180,0.5)';
+      if(heat){ const id=nm[f.properties.name]; if(!id) return 'rgba(18,30,48,0.8)'; const l=DATA.find(d=>d.id===id); const c=l&&topCat(l); return c?this.hexA(CATS[c].color,0.55):base(f); }
+      return base(f);
+    });
+  }
+
+  subsolar(d){ const start=Date.UTC(d.getUTCFullYear(),0,0); const N=(d-start)/86400000; const decl=-23.44*Math.cos((2*Math.PI/365)*(N+10)); let h=d.getUTCHours()+d.getUTCMinutes()/60; let lng=-15*(h-12); while(lng>180)lng-=360; while(lng<-180)lng+=360; return {lat:decl,lng}; }
+  applySun(){
+    const g=this.globe, L=this._lights; if(!g||!L) return;
+    if(!this.state.dayNight){ L.dir.forEach((l,i)=>{ l.intensity=L.dirI[i]; if(L.dirPos[i]) l.position.copy(L.dirPos[i]); }); L.amb.forEach((l,i)=>l.intensity=L.ambI[i]); return; }
+    const ss=this.subsolar(this.cutoffDate());
+    try{ const c=g.getCoords(ss.lat,ss.lng,3); L.dir.forEach(l=>{ l.position.set(c.x,c.y,c.z); l.intensity=3.1; l.color&&l.color.set('#fff4e0'); }); L.amb.forEach(l=>l.intensity=0.015); }catch(e){}
+  }
+
+  addPolys(tries=0){
+    if(!this.globe) return;
+    if(!window.topojson){ if(tries<50) setTimeout(()=>this.addPolys(tries+1),150); return; }
+    const g=this.globe, nm=this.nameMap;
+    fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r=>r.json()).then(w=>{
+      const feats=window.topojson.feature(w,w.objects.countries).features;
+      this._feats=feats;
+      this.buildFlat();
+      g.polygonsData(feats)
+        .polygonSideColor(()=>'rgba(8,18,34,0.5)')
+        .polygonStrokeColor(()=>'rgba(95,216,180,0.5)')
+        .polygonAltitude(0.007)
+        .onPolygonHover(h=>{ this._hoverFeat=h; this.paintPolys(); })
+        .onPolygonClick(f=>{ const id=nm[f.properties.name]; if(id) this.selectLocation(id); else this.showToast('No coverage for '+f.properties.name+' yet'); });
+      this.paintPolys();
+    }).catch(()=>{});
+  }
+
+  sizeGlobe(){ const el=this.globeRef.current; if(el&&this.globe){ this.globe.width(el.clientWidth).height(el.clientHeight); } }
+
+  selectLocation(id, fromHash){
+    if(!this._data.find(x=>x.id===id)){ this.showToast('No coverage for that place yet'); return; }
+    this.setState({selectedId:id, tab:'news', activeCat:'all', expandedId:null, toast:'', query:'', coach:false});
+    if(!fromHash){ try{ history.replaceState(null,'','#loc='+id); }catch(e){} }
+    const l=this._data.find(x=>x.id===id);
+    if(l&&this.globe){ this.globe.controls().autoRotate=false; this._userStopped=true; if(this.state.rotating) this.setState({rotating:false}); this.globe.pointOfView({lat:l.lat,lng:l.lng,altitude:1.75},1200); }
+  }
+  toggleNews(id){ this.setState(s=>({expandedId: s.expandedId===id?null:id})); }
+  setCat(c){ this.setState({activeCat:c, expandedId:null}); }
+  setTab(t){ this.setState({tab:t}); }
+  closePanel(){ this.setState({selectedId:null}); try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){} }
+  showToast(msg){ this.setState({toast:msg}); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({toast:''}),2600); }
+
+  setQuery(v){ this.setState({query:v}); }
+  toggleHeat(){ this.setState(s=>({heat:!s.heat})); }
+  toggleArcs(){ this.setState(s=>({arcs:!s.arcs})); }
+  toggleDayNight(){ this.setState(s=>({dayNight:!s.dayNight})); }
+  toggleFacts(id){ this.setState(s=>({facts:Object.assign({},s.facts,{[id]:!s.facts[id]})})); }
+  setScrub(v){ const n=Number(v); this.setState({scrub: n>=this.maxDate ? null : n}); }
+  resetScrub(){ this.setState({scrub:null}); }
+  toggleBookmark(id){ let bm=this.state.bookmarks.slice(); const i=bm.indexOf(id); if(i>=0)bm.splice(i,1); else bm.push(id); this.setState({bookmarks:bm}); try{ localStorage.setItem('terra_bookmarks',JSON.stringify(bm)); }catch(e){} }
+  dismissCoach(){ this.setState({coach:false}); try{ localStorage.setItem('terra_seen','1'); }catch(e){} }
+  toggleRail(){ this.setState(s=>({railMin:!s.railMin})); }
+  toggleFlat(){ this.setState(s=>({flat:!s.flat})); if(!this._flatGeo) this.ensureFlat(); }
+  buildFlat(){
+    if(this._flatGeo || !this._feats || !window.d3 || !window.d3.geoEqualEarth) return;
+    const d3=window.d3, W=1000, H=485;
+    const proj=d3.geoEqualEarth().fitExtent([[10,10],[W-10,H-10]],{type:'Sphere'});
+    const path=d3.geoPath(proj);
+    this._flatProj=proj; this._flatSize={W,H};
+    this._flatGeo={ sphere:path({type:'Sphere'}), grat:path(d3.geoGraticule10()),
+      countries:this._feats.map(f=>({id:this.nameMap[f.properties.name]||null,name:f.properties.name,d:path(f)})) };
+  }
+  ensureFlat(tries=0){ this.buildFlat(); if(!this._flatGeo && tries<40){ setTimeout(()=>this.ensureFlat(tries+1),150); } else { this.forceUpdate(); } }
+  flatVals(st, ctx){
+    const flat=!!st.flat;
+    const out={ flat, notFlat:!flat, toggleFlat:()=>this.toggleFlat(),
+      flatLabel: flat?'Globe':'Flat map', flatReady:false,
+      flatBg: flat?'rgba(77,144,230,.16)':'rgba(8,14,24,.72)',
+      flatFg: flat?'#a9c8f0':'#9fb4d0',
+      flatBd: flat?'rgba(77,144,230,.5)':'rgba(120,160,210,.16)', flatArcs:[] };
+    if(!flat) return out;
+    this.buildFlat();
+    if(!this._flatGeo) return out;
+    const {DATA,CATS,topNews,activeLocs}=ctx, proj=this._flatProj, sz=this._flatSize, geo=this._flatGeo, heat=st.heat;
+    const topCat=l=>{ const nn=this.newsUpTo(l); return nn[0]?nn[0].cat:null; };
+    out.flatReady=true; out.flatViewBox='0 0 '+sz.W+' '+sz.H;
+    out.flatSphere=geo.sphere; out.flatGrat=geo.grat;
+    out.flatCountries=geo.countries.map(c=>{
+      let fill='rgba(24,44,72,0.85)', sw='0.3';
+      if(c.id){ fill='rgba(46,92,142,0.95)'; sw='0.55';
+        if(heat){ const l=DATA.find(d=>d.id===c.id); const cat=l&&topCat(l); if(cat) fill=this.hexA(CATS[cat].color,0.6); }
+        if(c.id===st.selectedId) fill='rgba(95,216,180,0.55)';
+      }
+      const cid=c.id, cname=c.name;
+      return {d:c.d, fill, sw, onClick: cid?(()=>this.selectLocation(cid)):(()=>this.showToast('No coverage for '+cname+' yet'))};
+    });
+    const hs=activeLocs.map(l=>{ const p=proj([l.lng,l.lat]); const col=CATS[topNews(l).cat].color; return {x:p[0].toFixed(1),y:p[1].toFixed(1),r:(3+l.importance*4).toFixed(1),color:col,major:l.importance>=0.82,onClick:()=>this.selectLocation(l.id)}; });
+    out.flatHotspots=hs;
+    out.flatRings=hs.filter(h=>h.major).map(h=>({x:h.x,y:h.y,r:(Number(h.r)+5).toFixed(1),color:h.color}));
+    if(st.arcs && window.d3){
+      const d3=window.d3, has=id=>activeLocs.find(a=>a.id===id), pos=id=>DATA.find(d=>d.id===id), selId=st.selectedId, arcs=[];
+      this.CLUSTERS.forEach(cl=>{
+        const ids=cl.ids.filter(has), hub=ids[0]; if(!hub) return;
+        ids.slice(1).forEach(id=>{
+          const a=pos(hub), b=pos(id); if(!a||!b) return;
+          const touch=selId&&(id===selId||hub===selId), dim=selId&&!touch;
+          const interp=d3.geoInterpolate([a.lng,a.lat],[b.lng,b.lat]); let dstr='';
+          for(let t=0;t<=1.0001;t+=1/26){ const p=proj(interp(Math.min(t,1))); dstr+=(dstr?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); }
+          arcs.push({d:dstr, color: dim?this.hexA(cl.color,0.06):this.hexA(cl.color, touch?0.92:0.36), w: touch?'1.5':'0.8'});
+        });
+      });
+      out.flatArcs=arcs;
+    }
+    return out;
+  }
+  openGuide(){ this.setState({coach:true, help:false, guideStep:0}); this.scheduleMeasure(); }
+  nextGuide(){ this.setState(s=>{ const n=s.guideStep+1; if(n>=this.GUIDE.length){ try{ localStorage.setItem('terra_seen','1'); }catch(e){} return {coach:false, guideStep:0, guideRect:null}; } return {guideStep:n}; }); this.scheduleMeasure(); }
+  prevGuide(){ this.setState(s=>({guideStep:Math.max(0,s.guideStep-1)})); this.scheduleMeasure(); }
+  scheduleMeasure(){ clearTimeout(this._mt); this._mt=setTimeout(()=>this.measureGuide(),60); }
+  measureGuide(){
+    if(!this.state.coach){ if(this.state.guideRect) this.setState({guideRect:null}); return; }
+    const step=this.GUIDE[this.state.guideStep]; const tid=step&&step.target;
+    if(!tid){ if(this.state.guideRect) this.setState({guideRect:null}); return; }
+    const el=document.getElementById(tid);
+    if(!el){ if(this.state.guideRect) this.setState({guideRect:null}); return; }
+    const r=el.getBoundingClientRect();
+    const nr={top:r.top,left:r.left,width:r.width,height:r.height};
+    const o=this.state.guideRect;
+    if(!o||o.top!==nr.top||o.left!==nr.left||o.width!==nr.width||o.height!==nr.height) this.setState({guideRect:nr});
+  }
+  openInfo(){ this.setState({help:true, coach:false}); }
+  closeInfo(){ this.setState({help:false}); }
+  share(id){ const url=(location.origin+location.pathname+'#loc='+id); try{ navigator.clipboard.writeText(url); this.showToast('Link copied — '+url.slice(-24)); }catch(e){ this.showToast('Copy unavailable here'); } }
+  async aiRefresh(id){
+    if(!(window.claude && window.claude.complete)){ this.showToast('AI refresh unavailable in this environment'); return; }
+    const l=this._data.find(x=>x.id===id); if(!l) return;
+    this.setState({aiLoading:true});
+    const prompt='You are a strictly neutral wire-service editor. In 3 concise sentences, give an unbiased, high-level situational brief on why '+l.name+', '+l.country+' is in the news around mid-July 2026. Do NOT invent specific statistics, casualty numbers, quotes, or breaking claims; describe themes only and remind the reader to verify specifics against the cited sources. Plain text, no preamble.';
+    try{ const r=await window.claude.complete(prompt); this.setState(s=>({aiById:Object.assign({},s.aiById,{[id]:(r||'').trim()}),aiLoading:false})); }
+    catch(e){ this.setState({aiLoading:false}); this.showToast('AI refresh failed'); }
+  }
+
+  fmtRel(iso){ const base=this.cutoffDate(); const d=(base-new Date(iso))/36e5; if(d<0) return 'upcoming'; if(d<1) return 'just now'; if(d<24) return Math.round(d)+'h ago'; return Math.round(d/24)+'d ago'; }
+  fmtAbs(iso){ return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+  fmtDay(ms){ return new Date(ms).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}); }
+
+  firstSentence(t){ const m=(t||'').match(/^.*?[.!?](?:\s|$)/); return m?m[0].trim():t; }
+
+  guideGeo(st){
+    const gr=st.guideRect;
+    if(!gr) return {guideSpot:false, guideCenter:true};
+    const pad=8, W=340;
+    const vw=(typeof window!=='undefined'?window.innerWidth:1280), vh=(typeof window!=='undefined'?window.innerHeight:800);
+    const place=(this.GUIDE[st.guideStep]&&this.GUIDE[st.guideStep].place)||'below';
+    let top,left,tf='none';
+    if(place==='above'){ top=gr.top-16; left=gr.left; tf='translateY(-100%)'; }
+    else if(place==='left'){ top=gr.top; left=gr.left-16; tf='translateX(-100%)'; }
+    else if(place==='right'){ top=gr.top; left=gr.left+gr.width+16; }
+    else { top=gr.top+gr.height+16; left=gr.left; }
+    if(tf!=='translateX(-100%)') left=Math.max(16, Math.min(left, vw-W-16));
+    top=Math.max(16, Math.min(top, vh-40));
+    return {
+      guideSpot:true, guideCenter:false,
+      spotTop:(gr.top-pad)+'px', spotLeft:(gr.left-pad)+'px', spotW:(gr.width+pad*2)+'px', spotH:(gr.height+pad*2)+'px',
+      tipTop:top+'px', tipLeft:left+'px', tipTransform:tf, tipW:W+'px'
+    };
+  }
+
+  renderVals(){
+    const CATS=this.CATS, DATA=this._data||this.DATA, st=this.state;
+    const sel=DATA.find(l=>l.id===st.selectedId)||null;
+    const topNews=l=>{ const nn=this.newsUpTo(l); return nn[0]||[...l.news].sort((a,b)=>new Date(b.date)-new Date(a.date))[0]; };
+    const activeLocs=DATA.filter(l=>this.newsUpTo(l).length);
+    const topStories=[...activeLocs].sort((a,b)=>b.importance-a.importance).slice(0,7).map(l=>({
+      id:l.id,name:l.name,country:l.country,color:CATS[topNews(l).cat].color,headline:topNews(l).title,onClick:()=>this.selectLocation(l.id)
+    }));
+    // search
+    const q=(st.query||'').trim().toLowerCase();
+    let results=[];
+    if(q){
+      results=DATA.filter(l=>(l.name+' '+l.country+' '+l.region).toLowerCase().includes(q)).slice(0,7)
+        .map(l=>({id:l.id,name:l.name,country:l.country,color:CATS[topNews(l).cat].color,onClick:()=>this.selectLocation(l.id)}));
+    }
+    // bookmarks
+    const bmk=st.bookmarks.map(id=>DATA.find(d=>d.id===id)).filter(Boolean).map(l=>({
+      id:l.id,name:l.name,country:l.country,color:CATS[topNews(l).cat].color,
+      onClick:()=>this.selectLocation(l.id), onRemove:(e)=>{ e.stopPropagation(); this.toggleBookmark(l.id); }
+    }));
+    // scrubber
+    const isLive=!st.scrub;
+    const base={
+      globeRef:this.globeRef,
+      dateLabel:new Date('2026-07-13T12:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'short',year:'numeric'}),
+      cats:Object.keys(CATS).map(k=>({id:k,label:CATS[k].label,color:CATS[k].color})),
+      topStories, hasToast:!!st.toast, toast:st.toast, hasSelection:!!sel,
+      stop:(e)=>e.stopPropagation(),
+      closePanel:()=>this.closePanel(), setTabNews:()=>this.setTab('news'), setTabHistory:()=>this.setTab('history'),
+      // search
+      query:st.query, onQuery:(e)=>this.setQuery(e.target.value), clearQuery:()=>this.setQuery(''),
+      hasQuery:!!q, results, hasResults:results.length>0,
+      // toolbar
+      heat:st.heat, arcs:st.arcs, dayNight:st.dayNight,
+      toggleHeat:()=>this.toggleHeat(), toggleArcs:()=>this.toggleArcs(), toggleDayNight:()=>this.toggleDayNight(),
+      heatBg: st.heat?'rgba(169,141,230,.18)':'rgba(8,14,24,.72)', heatFg: st.heat?'#c9b4f0':'#9fb4d0', heatBd: st.heat?'rgba(169,141,230,.5)':'rgba(120,160,210,.16)',
+      arcsBg: st.arcs?'rgba(95,216,180,.16)':'rgba(8,14,24,.72)', arcsFg: st.arcs?'#8fead0':'#9fb4d0', arcsBd: st.arcs?'rgba(95,216,180,.5)':'rgba(120,160,210,.16)',
+      dnBg: st.dayNight?'rgba(230,179,77,.16)':'rgba(8,14,24,.72)', dnFg: st.dayNight?'#f0d69a':'#9fb4d0', dnBd: st.dayNight?'rgba(230,179,77,.5)':'rgba(120,160,210,.16)',
+      dnLabel: st.dayNight?'Day / Night ON':'Day / Night',
+      // scrubber
+      scrubMin:this.minDate, scrubMax:this.maxDate, scrubVal: st.scrub||this.maxDate,
+      onScrub:(e)=>this.setScrub(e.target.value), resetScrub:()=>this.resetScrub(),
+      scrubLive:isLive, notLive:!isLive, scrubLabel: isLive?'LIVE · now':this.fmtDay(st.scrub), scrubLabelColor: isLive?'#5fd8b4':'#e6b34d',
+      // bookmarks
+      bookmarks:bmk, hasBookmarks:bmk.length>0,
+      // coach + help
+      coach:!!st.coach, dismissCoach:()=>this.dismissCoach(),
+      guideIcon:this.GUIDE[st.guideStep].icon, guideTitle:this.GUIDE[st.guideStep].title, guideBody:this.GUIDE[st.guideStep].body,
+      guideDots:this.GUIDE.map((g,i)=>({bg: i===st.guideStep?'#5fd8b4':'rgba(120,160,210,.28)', w: i===st.guideStep?'20px':'7px'})),
+      guideStepLabel:(st.guideStep+1)+' / '+this.GUIDE.length,
+      nextGuide:()=>this.nextGuide(), prevGuide:()=>this.prevGuide(),
+      guideShowBack: st.guideStep>0, guideNextLabel: st.guideStep>=this.GUIDE.length-1?'Finish →':'Next →',
+      help:!!st.help, openGuide:()=>this.openGuide(), openInfo:()=>this.openInfo(), closeInfo:()=>this.closeInfo(),
+      glossary:[
+        {term:'Hotspot', def:'A glowing dot on the globe marking a place with current news. Bigger, brighter dots signal bigger stories. Click one to open its panel.'},
+        {term:'Pulsing ring', def:'A ripple around a hotspot means a MAJOR story — something affecting many people or of wide importance.'},
+        {term:'Category colors', def:'Every story is tagged by topic (Politics, Conflict & Security, Technology, Science, Health, Environment, Business, Culture). The color key is bottom-left.'},
+        {term:'Source-mix bar', def:'The small colored bar under each headline shows the spread of outlets behind the story, plus how many sources. It is an approximate outlet classification, not a precise political score.'},
+        {term:'Freshness fade', def:'Older stories appear slightly dimmed so the newest reporting stands out. News is always listed newest-first.'},
+        {term:'Just the facts', def:'Inside an expanded story, switch between the Full write-up and a one-line factual summary.'},
+        {term:'Links (↔)', def:'Draws arcs between places tied to the same running story (e.g. a conflict or the World Cup). Open a place to highlight only its connections.'},
+        {term:'Heat (◭)', def:'Recolors whole countries by their dominant story type, for a quick global mood-map.'},
+        {term:'Sun (☀)', def:'Overlays the real-time day/night terminator — the lit half of Earth right now (or at the time you have scrubbed to).'},
+        {term:'Time machine', def:'The bottom slider replays the week: drag back to see which hotspots had appeared by a given day. Press GO LIVE to return to now.'},
+        {term:'Follow (★) & Share (⇗)', def:'Star a place to pin it to your Following list; Share copies a link that reopens straight to that location.'},
+        {term:'AI brief (✦)', def:'Generates a short, neutral situational summary. It is AI-generated and unverified — always check the cited sources.'},
+        {term:'Flat map · Equal Earth', def:'The ⊞ Flat map view uses the Equal Earth projection — an equal-area map (created in 2018 by Šavrič, Patterson & Jenny, and the basis of NASA’s Equal Earth Wall Map). Unlike common maps such as Mercator, it shows every continent and country at its TRUE relative size, so the areas you see are factually accurate.'}
+      ],
+      howto:[
+        {step:'1', text:'Drag to spin the globe, scroll to zoom, or use the search box to jump to any city or country.'},
+        {step:'2', text:'Click a glowing hotspot (or any country) to open its News & History panel.'},
+        {step:'3', text:'Filter by category, click a headline to expand detail and sources, and toggle Just the facts.'},
+        {step:'4', text:'Use the ↔ Links, ◭ Heat and ☀ Sun toggles and the bottom Time machine to explore visually.'},
+        {step:'5', text:'Star places to follow them, and Share to send a direct link.'}
+      ],
+      // top-stories rail
+      railMin:!!st.railMin, railOpen:!st.railMin, toggleRail:()=>this.toggleRail(),
+      railChevron: st.railMin?'▸':'▾', railHeadMargin: st.railMin?'0':'11px',
+      // responsive
+      narrow:!!st.narrow, notNarrow:!st.narrow
+    };
+    Object.assign(base, this.guideGeo(st));
+    Object.assign(base, this.flatVals(st, {DATA,CATS,topNews,activeLocs}));
+    if(!sel) return base;
+    const allNews=this.newsUpTo(sel);
+    const present=[...new Set(allNews.map(n=>n.cat))];
+    const chipStyle=(color,active)=> active ? {bg:this.hexA(color,0.16),fg:color,border:this.hexA(color,0.5)} : {bg:'transparent',fg:'#9fb4d0',border:'rgba(120,160,210,.22)'};
+    const chips=[{id:'all',color:'#9fb4d0',label:'All',count:allNews.length}].concat(
+      present.map(c=>({id:c,color:CATS[c].color,label:CATS[c].label,count:allNews.filter(n=>n.cat===c).length}))
+    ).map(ch=>{ const s=chipStyle(ch.color, st.activeCat===ch.id); return {label:ch.label,count:ch.count,bg:s.bg,fg:s.fg,border:s.border,onClick:()=>this.setCat(ch.id)}; });
+    const filtered = st.activeCat==='all' ? allNews : allNews.filter(n=>n.cat===st.activeCat);
+    const items=filtered.map(n=>{
+      const ageH=(this.cutoffDate()-new Date(n.date))/36e5;
+      const opacity= ageH<24?1: ageH<72?0.82:0.62;
+      const leanCounts={}; n.sources.forEach(s=>{ const k=this.LEAN[s.name]||'o'; leanCounts[k]=(leanCounts[k]||0)+1; });
+      const leanSegs=Object.keys(leanCounts).map(k=>({flex:leanCounts[k],color:this.LEANMETA[k].color,label:this.LEANMETA[k].label,count:leanCounts[k]}));
+      const factsOn=!!st.facts[n.id];
+      return {
+        id:n.id, catLabel:CATS[n.cat].label, catColor:CATS[n.cat].color,
+        rel:this.fmtRel(n.date), abs:this.fmtAbs(n.date), title:n.title,
+        paras:n.detail, sources:n.sources, opacity,
+        leanSegs, srcCount:n.sources.length,
+        facts:this.firstSentence(n.detail[0]), factsOn, showFacts:factsOn, showFull:!factsOn,
+        onFacts:(e)=>{ e.stopPropagation(); this.toggleFacts(n.id); },
+        factsBtnColor: factsOn?'#5fd8b4':'#7089aa', fullBtnColor: factsOn?'#7089aa':'#5fd8b4',
+        expanded:st.expandedId===n.id, collapsed:st.expandedId!==n.id,
+        onToggle:()=>this.toggleNews(n.id)
+      };
+    });
+    const showNews=st.tab==='news';
+    const bookmarked=st.bookmarks.indexOf(sel.id)>=0;
+    return Object.assign(base,{
+      name:sel.name, country:sel.country, region:sel.region, coords:sel.coords, blurb:sel.blurb,
+      hot:sel.importance>=0.85, newsCount:allNews.length,
+      showNews, showHistory:st.tab==='history',
+      newsTabColor: showNews?'#eef4fb':'#6f86a6', newsTabBorder: showNews?'#5fd8b4':'transparent',
+      histTabColor: showNews?'#6f86a6':'#eef4fb', histTabBorder: showNews?'transparent':'#5fd8b4',
+      chips, items,
+      bookmarked, bmColor: bookmarked?'#e6b34d':'#9fb4d0', bmFill: bookmarked?'#e6b34d':'none', bmBorder: bookmarked?'rgba(230,179,77,.5)':'rgba(120,160,210,.2)',
+      onBookmark:()=>this.toggleBookmark(sel.id), onShare:()=>this.share(sel.id),
+      onAI:()=>this.aiRefresh(sel.id), aiLoading:!!st.aiLoading, aiText:st.aiById[sel.id]||'', hasAI:!!st.aiById[sel.id],
+      aiBtnLabel: st.aiLoading?'Generating brief…':(st.aiById[sel.id]?'Regenerate AI brief':('Generate AI brief for '+sel.name)),
+      historyIntro:sel.history.intro, historyParagraphs:sel.history.paragraphs, historyTimeline:[...sel.history.timeline].reverse()
+    });
+  }
+}
+</script>
+</body>
+</html>

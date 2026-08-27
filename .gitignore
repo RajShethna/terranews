@@ -1,0 +1,6 @@
+vendor/
+*.tgz
+x_*/
+.netlify/
+node_modules/
+__pycache__/
