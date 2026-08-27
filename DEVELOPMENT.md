@@ -1,16 +1,17 @@
 # Terra News — hard rules
 
 Terra News is an interactive world-news globe: `index.html` (marketing landing page) and
-`globe.html` (the full-screen 3D globe app), both **Claude Design exports** running on a
-shared generated runtime, `support.js`. No build step, no framework install.
+`globe.html` (the full-screen 3D globe app), both built with a declarative visual-export
+format running on a shared generated runtime, `support.js`. No build step, no framework
+install.
 
 ## Hard rules
 
 1. **Never edit `support.js`.** It is generated — the file's own header says
    `GENERATED from dc-runtime/src/*.ts — do not edit. Rebuild with `cd dc-runtime && bun run build`.`
    Verify it is byte-identical before every deploy (currently 61,572 bytes, sha256 starting `78f6b3cb83ef`).
-2. **Never re-export `index.html`/`globe.html` from Claude Design.** The export emits
-   desktop-width inline styles and overwrites both the `@media` blocks and the `clamp()`
+2. **Never re-export `index.html`/`globe.html` from the visual builder they came from.** A
+   fresh export emits desktop-width inline styles and overwrites both the `@media` blocks and the `clamp()`
    values that make the site responsive. If a re-export is unavoidable, diff old vs new and
    port every responsive fix (see below) forward manually.
 3. **Never ship without `support.js`** in the same folder as the two HTML files. Without it

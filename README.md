@@ -13,11 +13,11 @@ Two pages, no build step, no framework install:
 |---|---|
 | `index.html` | Marketing landing page, with a small d3 canvas globe in the hero. |
 | `globe.html` | The app itself — a full-screen 3D globe ([globe.gl](https://globe.gl)) with floating info panels. |
-| `support.js` | Generated runtime that both pages load. **Do not edit by hand** — see [CLAUDE.md](./CLAUDE.md). |
+| `support.js` | Generated runtime that both pages load. **Do not edit by hand** — see [DEVELOPMENT.md](./DEVELOPMENT.md). |
 
-Both pages are [Claude Design](https://claude.ai) exports: markup with `{{ }}` interpolation
-and a `<script type="text/x-dc">` logic block, interpreted at runtime by `support.js`, which
-in turn loads React, ReactDOM, and Babel from a CDN. There's nothing to install or compile —
+Both pages use a declarative export format: markup with `{{ }}` interpolation and a
+`<script type="text/x-dc">` logic block, interpreted at runtime by `support.js`, which in
+turn loads React, ReactDOM, and Babel from a CDN. There's nothing to install or compile —
 open `globe.html` (with `support.js` alongside it) and it renders.
 
 ## Features
@@ -36,7 +36,7 @@ sources per story.
 
 ## Development
 
-There's no build. To work on this locally, see [CLAUDE.md](./CLAUDE.md) for the hard rules
+There's no build. To work on this locally, see [DEVELOPMENT.md](./DEVELOPMENT.md) for the hard rules
 (what never to edit, why) and `check_mobile.py` for the mobile-regression test harness used
 before every deploy.
 
