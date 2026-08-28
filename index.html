@@ -51,6 +51,7 @@ a:hover{color:#18856a}
         <a href="#features" style="color:#4a5462">Instruments</a>
         <a href="#method" style="color:#4a5462">Method</a>
         <a href="#faq" style="color:#4a5462">FAQ</a>
+        <span onClick="{{ openFeedback }}" style="color:#4a5462;cursor:pointer">Feedback</span>
       </div>
       <a id="hdr-cta" href="globe.html" style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:#f7f4ed;background:#14181d;padding:10px 16px;border-radius:2px;white-space:nowrap;flex:none" style-hover="background:#0f5c4a;color:#f7f4ed">Open the globe →</a>
     </div>
@@ -230,6 +231,26 @@ a:hover{color:#18856a}
     <span>Coastlines: Natural Earth · Flat map: Equal Earth projection</span>
     <span>A prototype · news snapshot, not a live feed</span>
   </div>
+
+  <sc-if value="{{ feedback }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeFeedback }}" style="position:fixed;inset:0;z-index:60;background:rgba(20,24,29,.55);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px">
+      <div onClick="{{ stopClick }}" style="width:440px;max-width:100%;background:#f7f4ed;border:1px solid #14181d;border-radius:6px;padding:30px 28px;box-shadow:0 30px 80px rgba(20,24,29,.35)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px">
+          <div>
+            <div style="font-family:'Newsreader',serif;font-weight:600;font-size:22px;color:#14181d">Send feedback</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#6d7683;margin-top:5px">Ideas, bugs, anything</div>
+          </div>
+          <span onClick="{{ closeFeedback }}" style="cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:14px;color:#6d7683">✕</span>
+        </div>
+        <textarea value="{{ fbMsg }}" onInput="{{ onFbMsg }}" placeholder="What should we know?" rows="5" style="width:100%;margin-top:20px;background:#efeade;border:1px solid #c9c2b2;border-radius:4px;padding:11px 13px;color:#14181d;font-family:'Newsreader',serif;font-size:14.5px;line-height:1.5;resize:vertical"></textarea>
+        <input value="{{ fbEmail }}" onInput="{{ onFbEmail }}" placeholder="Your email (optional)" style="width:100%;margin-top:10px;background:#efeade;border:1px solid #c9c2b2;border-radius:4px;padding:10px 13px;color:#14181d;font-family:'Space Grotesk',sans-serif;font-size:13.5px" />
+        <sc-if value="{{ fbError }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#c0392b">Couldn't send that — please try again.</div>
+        </sc-if>
+        <div onClick="{{ submitFeedback }}" style="cursor:pointer;margin-top:16px;text-align:center;font-weight:500;font-size:15px;color:#f7f4ed;background:{{ fbBtnBg }};padding:13px;border-radius:2px">{{ fbBtnLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
 </div>
 
 </x-dc>
@@ -256,7 +277,7 @@ const SPOTS = [
 ];
 
 class Component extends DCLogic {
-  state = {sel:0, open:0};
+  state = {sel:0, open:0, feedback:false, fbMsg:'', fbEmail:'', fbStatus:'idle'};
 
   componentDidMount(){
     this.rot = 18; this.tilt = -12; this.drag = null; this.moved = 0;
@@ -273,6 +294,24 @@ class Component extends DCLogic {
     cancelAnimationFrame(this._raf);
     const c = this.cv;
     if (c && this._h) { c.removeEventListener('pointerdown', this._h.d); window.removeEventListener('pointermove', this._h.m); window.removeEventListener('pointerup', this._h.u); }
+  }
+
+  openFeedback(){ this.setState({feedback:true, fbStatus:'idle'}); }
+  closeFeedback(){ this.setState({feedback:false}); }
+  async submitFeedback(){
+    const msg = (this.state.fbMsg || '').trim();
+    if (!msg || this.state.fbStatus === 'sending') return;
+    this.setState({fbStatus:'sending'});
+    try {
+      const r = await fetch('https://formsubmit.co/ajax/shethnarcan@gmail.com', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','Accept':'application/json'},
+        body: JSON.stringify({_subject:'TerraNews feedback (landing page)', message: msg, email: this.state.fbEmail || '(not provided)'})
+      });
+      if (!r.ok) throw new Error('bad status');
+      this.setState({fbStatus:'sent', fbMsg:'', fbEmail:''});
+      setTimeout(() => this.setState({feedback:false}), 900);
+    } catch (e) { this.setState({fbStatus:'error'}); }
   }
 
   fit(){
@@ -381,6 +420,18 @@ class Component extends DCLogic {
       selMeta: s.c + ' · ' + cat,
       selHeadline: s.h,
       selColor: CAT[s.cat],
+      feedback: this.state.feedback,
+      openFeedback: () => this.openFeedback(),
+      closeFeedback: () => this.closeFeedback(),
+      stopClick: (e) => e.stopPropagation(),
+      fbMsg: this.state.fbMsg,
+      fbEmail: this.state.fbEmail,
+      onFbMsg: (e) => this.setState({fbMsg: e.target.value}),
+      onFbEmail: (e) => this.setState({fbEmail: e.target.value}),
+      fbError: this.state.fbStatus === 'error',
+      submitFeedback: () => this.submitFeedback(),
+      fbBtnLabel: this.state.fbStatus === 'sending' ? 'Sending…' : (this.state.fbStatus === 'sent' ? 'Sent ✓' : 'Send feedback'),
+      fbBtnBg: this.state.fbMsg.trim() && this.state.fbStatus !== 'sending' ? '#0f5c4a' : '#9fae9f',
       tickerItems: [...SPOTS, ...SPOTS].map((x, i) => ({key:i, color:CAT[x.cat], label:x.c + ' — ' + x.cat})),
       steps: [
         {num:'1', title:'Spin and scan', body:'Pulsing rings mark the major stories. Colour tells you the category before you read a word.'},

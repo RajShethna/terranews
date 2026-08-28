@@ -130,9 +130,10 @@ a:hover{color:#8fead0}
       <div style="font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.18em;color:#6f86a6;margin-top:4px;text-transform:uppercase">Interactive world news globe</div>
     </div>
     <div id="tg-topright" style="pointer-events:auto;display:flex;flex-direction:column;align-items:flex-end;gap:9px">
-      <div id="tg-help" style="display:flex;gap:8px">
+      <div id="tg-help" style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px">
         <div onClick="{{ openGuide }}" title="Step-by-step walkthrough" style="cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#bfeeda;background:rgba(95,216,180,.1);border:1px solid rgba(95,216,180,.3);padding:7px 12px;border-radius:100px" style-hover="background:rgba(95,216,180,.18)">◎ Guide</div>
         <div onClick="{{ openInfo }}" title="Glossary of terms & how it works" style="cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#9fb4d0;background:rgba(8,14,24,.72);border:1px solid rgba(120,160,210,.24);padding:7px 12px;border-radius:100px" style-hover="background:rgba(120,160,210,.14)">ⓘ Info</div>
+        <div onClick="{{ openFeedback }}" title="Send a suggestion" style="cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#f0d69a;background:rgba(230,179,77,.1);border:1px solid rgba(230,179,77,.3);padding:7px 12px;border-radius:100px" style-hover="background:rgba(230,179,77,.18)">✎ Feedback</div>
       </div>
       <div id="tg-datemeta" style="text-align:right">
         <div style="font-family:'IBM Plex Mono';font-size:11px;color:#9fb4d0;letter-spacing:.08em">{{ dateLabel }}</div>
@@ -382,6 +383,29 @@ a:hover{color:#8fead0}
     </div>
   </sc-if>
 
+  <sc-if value="{{ feedback }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeFeedback }}" style="position:absolute;inset:0;z-index:41;background:rgba(3,6,12,.74);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:32px;animation:fadeUp .3s ease">
+      <div onClick="{{ stop }}" id="tg-modal" style="width:460px;max-width:94vw;max-height:86vh;overflow-y:auto;background:rgba(9,15,26,.97);border:1px solid rgba(120,160,210,.2);border-radius:18px;padding:30px 34px;box-shadow:0 30px 90px rgba(0,0,0,.6)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px">
+          <div>
+            <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;color:#eef4fb">Send feedback</div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;color:#6f86a6;text-transform:uppercase;margin-top:5px">Bugs, ideas, anything</div>
+          </div>
+          <div onClick="{{ closeFeedback }}" style="cursor:pointer;width:32px;height:32px;border-radius:50%;border:1px solid rgba(120,160,210,.2);display:flex;align-items:center;justify-content:center;color:#9fb4d0;font-size:14px;flex:none" style-hover="background:rgba(255,255,255,.07)">✕</div>
+        </div>
+
+        <textarea value="{{ fbMsg }}" onInput="{{ onFbMsg }}" placeholder="What should we know?" rows="5" style="width:100%;margin-top:22px;background:rgba(120,160,210,.08);border:1px solid rgba(120,160,210,.22);border-radius:10px;padding:12px 14px;color:#eef4fb;font-family:'Newsreader',serif;font-size:14.5px;line-height:1.5;resize:vertical"></textarea>
+        <input value="{{ fbEmail }}" onInput="{{ onFbEmail }}" placeholder="Your email (optional, if you want a reply)" style="width:100%;margin-top:10px;background:rgba(120,160,210,.08);border:1px solid rgba(120,160,210,.22);border-radius:10px;padding:11px 14px;color:#eef4fb;font-family:'Space Grotesk',sans-serif;font-size:13.5px" />
+
+        <sc-if value="{{ fbError }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e5847a">Couldn't send that — please try again in a moment.</div>
+        </sc-if>
+
+        <div onClick="{{ submitFeedback }}" style="cursor:pointer;margin-top:16px;text-align:center;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;color:#0b0f16;background:{{ fbBtnBg }};padding:12px;border-radius:11px">{{ fbBtnLabel }}</div>
+      </div>
+    </div>
+  </sc-if>
+
   <sc-if value="{{ coach }}" hint-placeholder-val="{{ false }}">
     <sc-if value="{{ guideCenter }}" hint-placeholder-val="{{ true }}">
       <div style="position:absolute;inset:0;z-index:40;background:rgba(3,6,12,.72);backdrop-filter:blur(3px)"></div>
@@ -438,7 +462,8 @@ a:hover{color:#8fead0}
 class Component extends DCLogic {
   state = { selectedId:null, tab:'news', activeCat:'all', expandedId:null, toast:'', rotating:true, ready:false,
             query:'', heat:false, arcs:true, dayNight:false, facts:{}, bookmarks:[], scrub:null,
-            aiById:{}, aiLoading:false, coach:false, narrow:false, railMin:false, help:false, guideStep:0, guideRect:null, flat:false };
+            aiById:{}, aiLoading:false, coach:false, narrow:false, railMin:false, help:false, guideStep:0, guideRect:null, flat:false,
+            feedback:false, fbMsg:'', fbEmail:'', fbStatus:'idle' };
   GUIDE = [
     {icon:'●', target:null, place:'center', title:'Welcome to TERRA · LIVE', body:'A living globe of the world’s news. This quick tour will point out each tool on screen — tap Next to step through it.'},
     {icon:'⌕', target:'tg-search', place:'below', title:'1 · Find a place', body:'Type any city or country here and pick it from the list to fly straight there. You can also drag the globe to spin it and scroll to zoom.'},
@@ -1268,6 +1293,24 @@ class Component extends DCLogic {
   }
   openInfo(){ this.setState({help:true, coach:false}); }
   closeInfo(){ this.setState({help:false}); }
+  openFeedback(){ this.setState({feedback:true, help:false, coach:false, fbStatus:'idle'}); }
+  closeFeedback(){ this.setState({feedback:false}); }
+  async submitFeedback(){
+    const msg=(this.state.fbMsg||'').trim();
+    if(!msg || this.state.fbStatus==='sending') return;
+    this.setState({fbStatus:'sending'});
+    try{
+      const r=await fetch('https://formsubmit.co/ajax/shethnarcan@gmail.com',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({_subject:'TerraNews feedback (globe app)', message:msg, email:this.state.fbEmail||'(not provided)'})
+      });
+      if(!r.ok) throw new Error('bad status');
+      this.setState({fbStatus:'sent', fbMsg:'', fbEmail:''});
+      this.showToast('Thanks — feedback sent!');
+      setTimeout(()=>this.setState({feedback:false}),700);
+    }catch(e){ this.setState({fbStatus:'error'}); }
+  }
   share(id){ const url=(location.origin+location.pathname+'#loc='+id); try{ navigator.clipboard.writeText(url); this.showToast('Link copied — '+url.slice(-24)); }catch(e){ this.showToast('Copy unavailable here'); } }
   async aiRefresh(id){
     if(!(window.claude && window.claude.complete)){ this.showToast('AI refresh unavailable in this environment'); return; }
@@ -1357,6 +1400,13 @@ class Component extends DCLogic {
       nextGuide:()=>this.nextGuide(), prevGuide:()=>this.prevGuide(),
       guideShowBack: st.guideStep>0, guideNextLabel: st.guideStep>=this.GUIDE.length-1?'Finish →':'Next →',
       help:!!st.help, openGuide:()=>this.openGuide(), openInfo:()=>this.openInfo(), closeInfo:()=>this.closeInfo(),
+      // feedback
+      feedback:!!st.feedback, openFeedback:()=>this.openFeedback(), closeFeedback:()=>this.closeFeedback(),
+      fbMsg:st.fbMsg, fbEmail:st.fbEmail,
+      onFbMsg:(e)=>this.setState({fbMsg:e.target.value}), onFbEmail:(e)=>this.setState({fbEmail:e.target.value}),
+      fbError: st.fbStatus==='error', submitFeedback:()=>this.submitFeedback(),
+      fbBtnLabel: st.fbStatus==='sending'?'Sending…':(st.fbStatus==='sent'?'Sent ✓':'Send feedback'),
+      fbBtnBg: st.fbMsg.trim() && st.fbStatus!=='sending' ? '#f0d69a' : 'rgba(240,214,154,.35)',
       glossary:[
         {term:'Hotspot', def:'A glowing dot on the globe marking a place with current news. Bigger, brighter dots signal bigger stories. Click one to open its panel.'},
         {term:'Pulsing ring', def:'A ripple around a hotspot means a MAJOR story — something affecting many people or of wide importance.'},
