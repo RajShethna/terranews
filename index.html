@@ -190,7 +190,7 @@ a:hover{color:#18856a}
         <p style="font-family:'Newsreader',serif;font-size:clamp(16px,4.1vw,18px);line-height:1.55;color:#aab4c2;margin:16px 0 0;max-width:34em;text-wrap:pretty">The geography of the news should not sit behind a paywall. Every instrument — arcs, heat map, time machine, source balance, AI brief — is available to every visitor, signed in or not.</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px">
-        <sc-for list="{{ pledge }}" as="p" hint-placeholder-count="4">
+        <sc-for list="{{ pledge }}" as="p" hint-placeholder-count="3">
           <div style="display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(247,244,237,.14);padding-bottom:11px">
             <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5fd8b4">✓</span>
             <span style="font-size:15.5px;color:#e6eaf0">{{ p }}</span>
@@ -408,7 +408,7 @@ class Component extends DCLogic {
         {k:'03', title:'History attached', body:'Every location carries the background needed to read today: what led here, and when it started.'},
         {k:'04', title:'Dated, never vague', body:'Timestamps are explicit and stories fade with age. Nothing pretends to be newer than it is.'}
       ],
-      pledge: ['All 12 instruments, no lock icons', 'No account required to read', 'No ad tech, no tracking profile', 'Bookmarks stay in your browser'],
+      pledge: ['All 12 instruments, no lock icons', 'No account required to read', 'Bookmarks stay in your browser'],
       faqs: faqSrc.map((f, i) => ({
         key: i, q: f.q, a: f.a,
         open: this.state.open === i,
@@ -420,5 +420,6 @@ class Component extends DCLogic {
 }
 
 </script>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "adc3794a566c41c099a7bd89138609d4"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
