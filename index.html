@@ -206,7 +206,7 @@ a:hover{color:#18856a}
       <div style="width:42px;height:42px;border-radius:50%;background:rgba(15,92,74,.08);border:1px solid rgba(15,92,74,.35);display:flex;align-items:center;justify-content:center;flex:none;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#0f5c4a">04</div>
       <h2 style="font-family:'Newsreader',serif;font-weight:400;font-size:clamp(26px,6.4vw,38px);letter-spacing:-.02em;margin:0">Questions, answered plainly</h2>
     </div>
-    <sc-for list="{{ faqs }}" as="q" hint-placeholder-count="6">
+    <sc-for list="{{ faqs }}" as="q" hint-placeholder-count="5">
       <div onClick="{{ q.onClick }}" class="faq-row" style="border-bottom:1px solid #c9c2b2;padding:20px 6px;cursor:pointer" style-hover="background:#efeade">
         <div style="display:flex;align-items:baseline;gap:14px">
           <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:#0f5c4a;width:14px;flex:none">{{ q.sign }}</span>
@@ -372,8 +372,7 @@ class Component extends DCLogic {
       {q:'Where does the news come from?', a:'Each entry is compiled from at least three independent outlets, and the app lists them per story with a source-balance bar showing the mix of wire, national and local reporting.'},
       {q:'Is this a live feed?', a:'Not yet. The prototype ships a dated snapshot so nothing unverified appears while you browse. Live syndication is the next milestone.'},
       {q:'How do you handle bias?', a:'By exposing it rather than hiding it. Every story shows its sources, a "just the facts" toggle strips interpretive language, and disagreements between outlets are stated instead of averaged away.'},
-      {q:'Why does the flat map look unfamiliar?', a:'It uses the Equal Earth projection, which preserves relative land area. Mercator maps inflate high latitudes; countries near the equator appear far smaller than they are.'},
-      {q:'Do you track me?', a:'No accounts, no ad tech, no profile. Bookmarks and follows are stored locally in your own browser.'}
+      {q:'Why does the flat map look unfamiliar?', a:'It uses the Equal Earth projection, which preserves relative land area. Mercator maps inflate high latitudes; countries near the equator appear far smaller than they are.'}
     ];
     return {
       heroCanvas: el => { this.cv = el; },
