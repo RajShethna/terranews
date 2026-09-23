@@ -102,6 +102,9 @@ export const LOCATIONS = {
   nuuk: ['Greenland', 'Greenlandic', 'Greenlanders', 'Nuuk'],
 };
 
+// Institutions named as funders or partners in stories from anywhere: only a headline mention counts.
+export const HEADLINE_ONLY = new Set(['brussels']);
+
 // Lowercase whole-word stems; order is the tie-break priority. Keys match CATS in globe.html.
 export const CATEGORIES = {
   security: ['war', 'attack', 'attacks', 'strike', 'strikes', 'airstrike', 'airstrikes', 'missile', 'missiles', 'drone', 'drones', 'killed', 'kills', 'troops', 'military', 'ceasefire', 'bomb', 'bombing', 'shelling', 'militant', 'militants', 'army', 'soldiers', 'invasion', 'hostage', 'hostages', 'rebels', 'gunmen', 'terror', 'terrorist', 'navy', 'weapons', 'defence', 'defense', 'nato'],

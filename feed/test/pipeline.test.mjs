@@ -69,6 +69,7 @@ test('location matching avoids known false positives', () => {
   assert.ok(matchLocations('Sudan army retakes Khartoum airport', '').includes('khartoum'));
   assert.deepEqual(matchLocations('Pilgrims flock to Santiago de Compostela', ''), []);
   assert.ok(matchLocations('EU agrees new sanctions package', '').includes('brussels'));
+  assert.ok(!matchLocations('Rs17.2bn project launched to boost climate resilience in GB', 'The EU-funded project, backed by the European Union and the EU delegation, will help Pakistan.').includes('brussels'));
 });
 
 test('classify picks sensible categories', () => {

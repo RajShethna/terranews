@@ -1,4 +1,4 @@
-import { LOCATIONS, CATEGORIES, WINDOW_DAYS, MAX_STORIES_PER_LOCATION, MAX_ARCHIVE_ITEMS } from './config.js';
+import { LOCATIONS, HEADLINE_ONLY, CATEGORIES, WINDOW_DAYS, MAX_STORIES_PER_LOCATION, MAX_ARCHIVE_ITEMS } from './config.js';
 
 const DAY = 86_400_000;
 const CLUSTER_WINDOW_MS = 48 * 3_600_000;
@@ -75,7 +75,7 @@ export function matchLocations(title, desc) {
   const scored = [];
   for (const [id, re] of LOC_RES) {
     const t = countMatches(re, title), d = countMatches(re, desc);
-    if (t > 0 || d >= 2) scored.push({ id, score: t * 3 + d });
+    if (t > 0 || (d >= 2 && !HEADLINE_ONLY.has(id))) scored.push({ id, score: t * 3 + d });
   }
   return scored.sort((a, b) => b.score - a.score).slice(0, 3).map(s => s.id);
 }
@@ -93,14 +93,16 @@ export function classify(title, desc) {
 export function mergeArchive(prev, fresh, now) {
   const cutoff = now - WINDOW_DAYS * DAY;
   const byLink = new Map();
-  for (const it of prev) if (it.date >= cutoff) byLink.set(it.link, it);
+  // Archived items are re-matched every run so keyword fixes apply retroactively.
+  const add = (it, date) => {
+    const locs = matchLocations(it.title, it.desc);
+    if (locs.length) byLink.set(it.link, { ...it, date, locs, cat: classify(it.title, it.desc) });
+  };
+  for (const it of prev) if (it.date >= cutoff) add(it, it.date);
   for (const it of fresh) {
     if (byLink.has(it.link)) continue;
     const date = Math.min(it.date, now);
-    if (date < cutoff) continue;
-    const locs = matchLocations(it.title, it.desc);
-    if (!locs.length) continue;
-    byLink.set(it.link, { ...it, date, locs, cat: classify(it.title, it.desc) });
+    if (date >= cutoff) add(it, date);
   }
   return [...byLink.values()].sort((a, b) => b.date - a.date).slice(0, MAX_ARCHIVE_ITEMS);
 }
