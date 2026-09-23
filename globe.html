@@ -293,7 +293,7 @@ a:hover{color:#8fead0}
                     <span title="{{ seg.label }}" style="flex:{{ seg.flex }};background:{{ seg.color }}"></span>
                   </sc-for>
                 </div>
-                <span style="font-family:'IBM Plex Mono';font-size:8.5px;letter-spacing:.08em;color:#5c7396;text-transform:uppercase">{{ item.srcCount }} sources</span>
+                <span style="font-family:'IBM Plex Mono';font-size:8.5px;letter-spacing:.08em;color:#5c7396;text-transform:uppercase">{{ item.srcCount }} {{ item.srcNoun }}</span>
               </div>
               <sc-if value="{{ item.collapsed }}" hint-placeholder-val="{{ true }}">
                 <div style="font-family:'IBM Plex Mono';font-size:9px;letter-spacing:.11em;color:#526d90;margin-top:9px">▸ EXPAND FOR DETAIL &amp; SOURCES</div>
@@ -477,7 +477,7 @@ class Component extends DCLogic {
   NOW = new Date('2026-07-13T20:00:00Z');
   // Built hourly by .github/workflows/news-feed.yml (see feed/). If it is missing or invalid, the curated July snapshot below is shown.
   FEED_URL = 'feed.json';
-  nameMap = {'United States of America':'dc','Ukraine':'kyiv','Russia':'moscow','Iran':'tehran','France':'paris','United Kingdom':'london','China':'beijing','India':'delhi','Japan':'tokyo','Nigeria':'lagos','Venezuela':'caracas','Israel':'jerusalem','Palestine':'gaza','Syria':'damascus','Lebanon':'beirut','Turkey':'ankara','Türkiye':'ankara','Iraq':'baghdad','Qatar':'doha','Germany':'berlin','Spain':'madrid','Brazil':'brasilia','Argentina':'buenosaires','Peru':'lima','Mexico':'mexico','Canada':'toronto','Morocco':'rabat','Egypt':'cairo','South Korea':'seoul','Australia':'sydney','South Africa':'joburg','Indonesia':'jakarta','Philippines':'manila','Pakistan':'islamabad','Taiwan':'taipei','Sri Lanka':'colombo','Bangladesh':'dhaka'};
+  nameMap = {'United States of America':'dc','Ukraine':'kyiv','Russia':'moscow','Iran':'tehran','France':'paris','United Kingdom':'london','China':'beijing','India':'delhi','Japan':'tokyo','Nigeria':'lagos','Venezuela':'caracas','Israel':'jerusalem','Palestine':'gaza','Syria':'damascus','Lebanon':'beirut','Turkey':'ankara','Türkiye':'ankara','Iraq':'baghdad','Qatar':'doha','Germany':'berlin','Spain':'madrid','Brazil':'brasilia','Argentina':'buenosaires','Peru':'lima','Mexico':'mexico','Canada':'toronto','Morocco':'rabat','Egypt':'cairo','South Korea':'seoul','Australia':'sydney','South Africa':'joburg','Indonesia':'jakarta','Philippines':'manila','Pakistan':'islamabad','Taiwan':'taipei','Sri Lanka':'colombo','Bangladesh':'dhaka','Saudi Arabia':'riyadh','Yemen':'sanaa','Jordan':'amman','Afghanistan':'kabul','Kenya':'nairobi','Ethiopia':'addis','Sudan':'khartoum','Dem. Rep. Congo':'kinshasa','Ghana':'accra','Italy':'rome','Poland':'warsaw','Belgium':'brussels','Colombia':'bogota','Chile':'santiago','Cuba':'havana','Haiti':'portauprince','Thailand':'bangkok','Vietnam':'hanoi','Myanmar':'yangon','North Korea':'pyongyang','New Zealand':'wellington','Nepal':'kathmandu','Greenland':'nuuk'};
   CATS = {
     politics:{label:'Politics',color:'#e6b34d'},
     security:{label:'Conflict & Security',color:'#e5654d'},
@@ -1058,7 +1058,152 @@ class Component extends DCLogic {
         ],
         history:{intro:'Dhaka is the capital of Bangladesh and one of the most densely populated cities in the world.',
           paragraphs:['A Mughal provincial capital famed for its muslin trade, Dhaka later came under British and then Pakistani administration.','Bangladesh won independence from Pakistan in 1971 after a brutal liberation war, and Dhaka has since grown into a megacity central to the global garment industry.'],
-          timeline:[{year:'1608',event:'Dhaka becomes a Mughal provincial capital.'},{year:'1947',event:'Becomes capital of East Pakistan.'},{year:'1971',event:'Bangladesh wins independence.'},{year:'2013',event:'Rana Plaza collapse spurs garment-industry reform.'}]}}
+          timeline:[{year:'1608',event:'Dhaka becomes a Mughal provincial capital.'},{year:'1947',event:'Becomes capital of East Pakistan.'},{year:'1971',event:'Bangladesh wins independence.'},{year:'2013',event:'Rana Plaza collapse spurs garment-industry reform.'}]}},
+
+      // Added for the live feed: no stories in the July snapshot, so these appear only when live coverage exists.
+      {id:'riyadh',name:'Riyadh',country:'Saudi Arabia',region:'Middle East',coords:'24.7°N, 46.7°E',lat:24.71,lng:46.68,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Riyadh is the capital of Saudi Arabia, the kingdom that holds Islam’s two holiest sites and some of the world’s largest oil reserves.',
+          paragraphs:['Ibn Saud proclaimed the modern kingdom in 1932 after decades of campaigns across the Arabian Peninsula. Oil was found in commercial quantities in 1938, transforming the economy.','Under Crown Prince Mohammed bin Salman, the Vision 2030 programme aims to diversify away from oil, while the kingdom plays a central role in OPEC+ and regional diplomacy.'],
+          timeline:[{year:'1902',event:'Ibn Saud captures Riyadh.'},{year:'1932',event:'Kingdom of Saudi Arabia proclaimed.'},{year:'1938',event:'Oil discovered at Dammam.'},{year:'1960',event:'Founding member of OPEC.'},{year:'2016',event:'Vision 2030 announced.'}]}},
+
+      {id:'sanaa',name:'Sanaa',country:'Yemen',region:'Middle East',coords:'15.4°N, 44.2°E',lat:15.37,lng:44.19,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Sanaa, one of the oldest continuously inhabited cities in the world, is Yemen’s historic capital, held by the Houthi movement since 2014.',
+          paragraphs:['North and South Yemen unified in 1990. After the 2011 uprising pushed President Ali Abdullah Saleh from power, the Houthis seized Sanaa in 2014 and a Saudi-led coalition intervened in 2015.','The war produced one of the world’s worst humanitarian crises. Since late 2023 the Houthis have attacked shipping in the Red Sea, drawing US and Israeli strikes.'],
+          timeline:[{year:'1962',event:'Revolution founds the Yemen Arab Republic in the north.'},{year:'1990',event:'North and South Yemen unify.'},{year:'2014',event:'Houthis take Sanaa.'},{year:'2015',event:'Saudi-led coalition intervenes.'},{year:'2023',event:'Red Sea shipping attacks begin.'}]}},
+
+      {id:'amman',name:'Amman',country:'Jordan',region:'Middle East',coords:'32.0°N, 35.9°E',lat:31.95,lng:35.93,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Amman is the capital of Jordan, a kingdom bordering Israel, the West Bank, Syria and Iraq that hosts one of the largest refugee populations relative to its size.',
+          paragraphs:['Jordan gained independence from Britain in 1946. In 1994 it signed a peace treaty with Israel, the second Arab state to do so after Egypt.','King Abdullah II has reigned since 1999. The country hosts large Palestinian and Syrian refugee communities and is a key intermediary in regional diplomacy.'],
+          timeline:[{year:'1946',event:'Independence from Britain.'},{year:'1967',event:'Loses the West Bank in the Six-Day War.'},{year:'1994',event:'Peace treaty with Israel.'},{year:'1999',event:'Abdullah II accedes to the throne.'}]}},
+
+      {id:'kabul',name:'Kabul',country:'Afghanistan',region:'South Asia',coords:'34.5°N, 69.2°E',lat:34.53,lng:69.17,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Kabul is the capital of Afghanistan, ruled by the Taliban since the collapse of the US-backed republic in August 2021.',
+          paragraphs:['The Soviet Union invaded in 1979 and withdrew in 1989; civil war followed, and the Taliban first took Kabul in 1996. A US-led coalition toppled them after the September 11 attacks in 2001.','The Taliban returned to power as US forces withdrew in 2021 and have imposed sweeping restrictions on women’s and girls’ education and work.'],
+          timeline:[{year:'1919',event:'Full independence from British control.'},{year:'1979',event:'Soviet invasion.'},{year:'1996',event:'Taliban capture Kabul.'},{year:'2001',event:'US-led intervention.'},{year:'2021',event:'Taliban return to power.'}]}},
+
+      {id:'nairobi',name:'Nairobi',country:'Kenya',region:'East Africa',coords:'1.3°S, 36.8°E',lat:-1.29,lng:36.82,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Nairobi is Kenya’s capital and East Africa’s main business, diplomatic and tech hub, home to the UN Environment Programme’s headquarters.',
+          paragraphs:['Founded in 1899 as a depot on the Uganda Railway, Nairobi became the capital of British East Africa. Kenya won independence in 1963 after the Mau Mau uprising, with Jomo Kenyatta as its first leader.','A 2010 constitution devolved power to counties. President William Ruto, elected in 2022, has faced large youth-led protests over taxes and the cost of living.'],
+          timeline:[{year:'1899',event:'Railway depot founded.'},{year:'1952',event:'Mau Mau emergency declared.'},{year:'1963',event:'Independence.'},{year:'2010',event:'New constitution.'},{year:'2024',event:'Youth-led protests against a finance bill.'}]}},
+
+      {id:'addis',name:'Addis Ababa',country:'Ethiopia',region:'East Africa',coords:'9.0°N, 38.7°E',lat:9.03,lng:38.74,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Addis Ababa is the capital of Ethiopia, Africa’s second most populous country, and the seat of the African Union.',
+          paragraphs:['Ethiopia is one of Africa’s oldest states and, apart from Italy’s 1936–41 occupation, was never colonised. The Derg military regime deposed Emperor Haile Selassie in 1974 and ruled until 1991.','Prime Minister Abiy Ahmed won the 2019 Nobel Peace Prize for ending the border war with Eritrea; the 2020–22 war in Tigray was one of the century’s deadliest conflicts.'],
+          timeline:[{year:'1886',event:'Addis Ababa founded.'},{year:'1936',event:'Italian occupation begins.'},{year:'1963',event:'Organisation of African Unity founded in the city.'},{year:'1974',event:'Haile Selassie deposed.'},{year:'2020',event:'War in Tigray begins.'}]}},
+
+      {id:'khartoum',name:'Khartoum',country:'Sudan',region:'East Africa',coords:'15.5°N, 32.6°E',lat:15.5,lng:32.56,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Khartoum sits where the Blue and White Nile meet. Since April 2023, Sudan has been torn apart by war between the army and the paramilitary Rapid Support Forces.',
+          paragraphs:['Sudan gained independence from Anglo-Egyptian rule in 1956. Omar al-Bashir ruled from a 1989 coup until mass protests led to his removal in 2019; South Sudan seceded in 2011.','The war between the Sudanese Armed Forces and the RSF has displaced millions, brought famine conditions, and devastated Khartoum and Darfur.'],
+          timeline:[{year:'1956',event:'Independence.'},{year:'1989',event:'Bashir takes power in a coup.'},{year:'2011',event:'South Sudan secedes.'},{year:'2019',event:'Bashir removed after mass protests.'},{year:'2023',event:'War between the army and the RSF erupts.'}]}},
+
+      {id:'kinshasa',name:'Kinshasa',country:'DR Congo',region:'Central Africa',coords:'4.4°S, 15.3°E',lat:-4.44,lng:15.27,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Kinshasa is the capital of the Democratic Republic of the Congo, a mineral-rich country whose eastern provinces have seen decades of conflict.',
+          paragraphs:['The territory was the personal possession of Belgium’s King Leopold II before becoming a Belgian colony, and won independence in 1960. Mobutu Sese Seko ruled from 1965 to 1997.','Two wars between 1996 and 2003 drew in several neighbouring states. In 2025 the M23 rebel group seized the eastern cities of Goma and Bukavu.'],
+          timeline:[{year:'1885',event:'Congo Free State established.'},{year:'1908',event:'Becomes a Belgian colony.'},{year:'1960',event:'Independence.'},{year:'1965',event:'Mobutu seizes power.'},{year:'2025',event:'M23 rebels take Goma.'}]}},
+
+      {id:'accra',name:'Accra',country:'Ghana',region:'West Africa',coords:'5.6°N, 0.2°W',lat:5.6,lng:-0.19,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Accra is the capital of Ghana, which in 1957 became one of the first sub-Saharan African countries to win independence from colonial rule.',
+          paragraphs:['Under Kwame Nkrumah, Ghana became a leading voice of pan-Africanism. After a series of coups, it returned to multiparty democracy in 1992.','Ghana is a major gold and cocoa producer, has seen several peaceful transfers of power, and hosts the secretariat of the African Continental Free Trade Area.'],
+          timeline:[{year:'1957',event:'Independence.'},{year:'1966',event:'Nkrumah overthrown.'},{year:'1992',event:'Return to multiparty rule.'},{year:'2020',event:'Continental free-trade secretariat opens in Accra.'}]}},
+
+      {id:'rome',name:'Rome',country:'Italy',region:'Southern Europe',coords:'41.9°N, 12.5°E',lat:41.9,lng:12.5,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Rome is Italy’s capital and surrounds Vatican City, the seat of the Roman Catholic Church.',
+          paragraphs:['Italy unified in 1861 and Rome became its capital in 1871. After Mussolini’s fascist rule and defeat in the Second World War, Italy became a republic by referendum in 1946.','A founding member of what became the European Union, Italy has changed governments often; Giorgia Meloni became its first female prime minister in 2022.'],
+          timeline:[{year:'1861',event:'Kingdom of Italy proclaimed.'},{year:'1871',event:'Rome becomes the capital.'},{year:'1929',event:'Lateran Treaty creates Vatican City.'},{year:'1946',event:'Republic established.'},{year:'1957',event:'Treaty of Rome signed.'}]}},
+
+      {id:'warsaw',name:'Warsaw',country:'Poland',region:'Central Europe',coords:'52.2°N, 21.0°E',lat:52.23,lng:21.01,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Warsaw is the capital of Poland, which has one of the largest armies in the European Union and is a key hub for aid to neighbouring Ukraine.',
+          paragraphs:['The city was almost entirely destroyed in the Second World War, after the 1944 Warsaw Uprising. Poland lived under Communist rule until the Solidarity movement helped bring partly free elections in 1989.','Poland joined NATO in 1999 and the EU in 2004, and has become one of the bloc’s fastest-growing economies.'],
+          timeline:[{year:'1918',event:'Independence restored.'},{year:'1939',event:'German and Soviet invasions.'},{year:'1944',event:'Warsaw Uprising.'},{year:'1989',event:'Partly free elections.'},{year:'2004',event:'Joins the European Union.'}]}},
+
+      {id:'brussels',name:'Brussels',country:'Belgium',region:'Western Europe',coords:'50.9°N, 4.4°E',lat:50.85,lng:4.35,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Brussels is Belgium’s capital and the de facto capital of the European Union, hosting the European Commission, the EU Council and NATO’s headquarters.',
+          paragraphs:['Belgium became independent from the Netherlands in 1830. The 1951 European Coal and Steel Community and the 1957 Treaty of Rome began the integration that grew into the EU.','Decisions on trade, sanctions, migration and regulation made in Brussels shape policy across the EU’s 27 member states.'],
+          timeline:[{year:'1830',event:'Belgian independence.'},{year:'1958',event:'European institutions begin work in Brussels.'},{year:'1967',event:'NATO headquarters moves to Brussels.'},{year:'1993',event:'Maastricht Treaty creates the EU.'},{year:'2016',event:'Terrorist attacks on the airport and metro.'}]}},
+
+      {id:'bogota',name:'Bogotá',country:'Colombia',region:'South America',coords:'4.7°N, 74.1°W',lat:4.71,lng:-74.07,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Bogotá is Colombia’s capital, set high in the Andes, in a country emerging from more than half a century of armed conflict.',
+          paragraphs:['Colombia’s conflict between the state, left-wing guerrillas, paramilitaries and drug cartels killed hundreds of thousands. A 2016 peace deal with the FARC ended the largest insurgency.','Gustavo Petro became the country’s first leftist president in 2022. Coca cultivation, armed groups and relations with the United States remain central issues.'],
+          timeline:[{year:'1810',event:'Independence declared from Spain.'},{year:'1948',event:'Bogotazo riots after Jorge Eliécer Gaitán’s assassination.'},{year:'1964',event:'FARC founded.'},{year:'2016',event:'Peace agreement with the FARC.'},{year:'2022',event:'Petro elected president.'}]}},
+
+      {id:'santiago',name:'Santiago',country:'Chile',region:'South America',coords:'33.4°S, 70.7°W',lat:-33.45,lng:-70.67,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Santiago is the capital of Chile, the world’s largest copper producer.',
+          paragraphs:['Augusto Pinochet seized power in a 1973 coup against President Salvador Allende. Democracy returned after he lost a 1988 plebiscite, and he left office in 1990.','Mass protests in 2019 led to two attempts to replace the Pinochet-era constitution; voters rejected both drafts, in 2022 and 2023.'],
+          timeline:[{year:'1818',event:'Independence from Spain.'},{year:'1973',event:'Military coup.'},{year:'1988',event:'Plebiscite ends Pinochet’s rule.'},{year:'2010',event:'Magnitude 8.8 earthquake.'},{year:'2019',event:'Mass social protests.'}]}},
+
+      {id:'havana',name:'Havana',country:'Cuba',region:'Caribbean',coords:'23.1°N, 82.4°W',lat:23.11,lng:-82.37,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Havana is the capital of Cuba, a one-party communist state about 150 kilometres from Florida.',
+          paragraphs:['Fidel Castro’s revolution overthrew Fulgencio Batista in 1959. The United States imposed a trade embargo, and the 1962 missile crisis brought the superpowers to the brink of nuclear war.','Cuba faces severe economic hardship, blackouts and record emigration; relations with Washington thawed in 2015 before tightening again.'],
+          timeline:[{year:'1902',event:'Independence.'},{year:'1959',event:'Revolution.'},{year:'1962',event:'Cuban Missile Crisis.'},{year:'2015',event:'Diplomatic relations with the US restored.'},{year:'2021',event:'Nationwide protests.'}]}},
+
+      {id:'portauprince',name:'Port-au-Prince',country:'Haiti',region:'Caribbean',coords:'18.6°N, 72.3°W',lat:18.59,lng:-72.31,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Port-au-Prince is the capital of Haiti, where armed gangs control much of the city.',
+          paragraphs:['Haiti became the first independent Black republic in 1804, after a successful revolt by enslaved people. The 2010 earthquake killed well over 100,000 people and devastated the capital.','Since the 2021 assassination of President Jovenel Moïse, gangs have expanded their control; a Kenyan-led multinational security mission deployed in 2024.'],
+          timeline:[{year:'1804',event:'Independence from France.'},{year:'1915',event:'US occupation begins.'},{year:'1957',event:'Duvalier dictatorship begins.'},{year:'2010',event:'Earthquake.'},{year:'2021',event:'President Moïse assassinated.'}]}},
+
+      {id:'bangkok',name:'Bangkok',country:'Thailand',region:'Southeast Asia',coords:'13.8°N, 100.5°E',lat:13.76,lng:100.5,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Bangkok is Thailand’s capital and a regional hub for tourism, trade and manufacturing.',
+          paragraphs:['Thailand is the only Southeast Asian nation never colonised by a European power. Since absolute monarchy ended in 1932 the military has staged more than a dozen coups, most recently in 2014.','Politics has long been shaped by rivalry between supporters of the Shinawatra family and the royalist-military establishment; a 2025 border conflict with Cambodia killed dozens.'],
+          timeline:[{year:'1782',event:'Bangkok becomes the capital.'},{year:'1932',event:'Absolute monarchy ends.'},{year:'2006',event:'Coup ousts Thaksin Shinawatra.'},{year:'2014',event:'Military coup.'},{year:'2025',event:'Border clashes with Cambodia.'}]}},
+
+      {id:'hanoi',name:'Hanoi',country:'Vietnam',region:'Southeast Asia',coords:'21.0°N, 105.8°E',lat:21.03,lng:105.85,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Hanoi is the capital of Vietnam, a one-party communist state and one of Asia’s fastest-growing manufacturing economies.',
+          paragraphs:['Ho Chi Minh declared independence in 1945; after France’s defeat in 1954 the country was divided. The war with the US-backed South ended with the fall of Saigon in 1975.','The 1986 Doi Moi reforms opened the economy to markets and foreign investment, making Vietnam a major exporter of electronics and clothing.'],
+          timeline:[{year:'1945',event:'Independence declared.'},{year:'1954',event:'Battle of Dien Bien Phu.'},{year:'1975',event:'Reunification.'},{year:'1986',event:'Doi Moi reforms.'},{year:'1995',event:'Relations normalised with the US.'}]}},
+
+      {id:'yangon',name:'Yangon',country:'Myanmar',region:'Southeast Asia',coords:'16.9°N, 96.2°E',lat:16.87,lng:96.2,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Yangon is Myanmar’s largest city and former capital; the government moved to Naypyidaw in 2005.',
+          paragraphs:['Burma won independence from Britain in 1948, and the military ruled from 1962. A partial opening let Aung San Suu Kyi’s party win the 2015 election.','The army seized power again in a February 2021 coup, triggering nationwide armed resistance. A 2017 military crackdown drove more than 700,000 Rohingya into Bangladesh.'],
+          timeline:[{year:'1948',event:'Independence.'},{year:'1962',event:'Military takeover.'},{year:'1988',event:'Pro-democracy uprising.'},{year:'2017',event:'Rohingya exodus.'},{year:'2021',event:'Military coup.'}]}},
+
+      {id:'pyongyang',name:'Pyongyang',country:'North Korea',region:'East Asia',coords:'39.0°N, 125.8°E',lat:39.04,lng:125.76,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Pyongyang is the capital of North Korea, a nuclear-armed state ruled by the Kim family since 1948.',
+          paragraphs:['The 1950–53 Korean War ended in an armistice, not a peace treaty, leaving the peninsula divided. Kim Il Sung was succeeded by his son Kim Jong Il and grandson Kim Jong Un.','North Korea tested its first nuclear device in 2006, has since developed intercontinental ballistic missiles, and has sent troops to support Russia’s war in Ukraine.'],
+          timeline:[{year:'1948',event:'Democratic People’s Republic of Korea founded.'},{year:'1950',event:'Korean War begins.'},{year:'1953',event:'Armistice signed.'},{year:'2006',event:'First nuclear test.'},{year:'2011',event:'Kim Jong Un takes power.'}]}},
+
+      {id:'singapore',name:'Singapore',country:'Singapore',region:'Southeast Asia',coords:'1.4°N, 103.8°E',lat:1.35,lng:103.82,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Singapore is a city-state at the tip of the Malay Peninsula and one of the world’s busiest ports and financial centres.',
+          paragraphs:['A British trading post from 1819, Singapore joined Malaysia in 1963 and became independent two years later. Under Lee Kuan Yew it grew from a poor port into one of the world’s richest countries.','The People’s Action Party has governed since independence; Lawrence Wong became prime minister in 2024.'],
+          timeline:[{year:'1819',event:'British trading post established.'},{year:'1942',event:'Japanese occupation.'},{year:'1963',event:'Joins Malaysia.'},{year:'1965',event:'Independence.'},{year:'2024',event:'Lawrence Wong becomes prime minister.'}]}},
+
+      {id:'wellington',name:'Wellington',country:'New Zealand',region:'Oceania',coords:'41.3°S, 174.8°E',lat:-41.29,lng:174.78,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Wellington is the capital of New Zealand, a parliamentary democracy known for early social reforms.',
+          paragraphs:['The 1840 Treaty of Waitangi between the British Crown and Māori chiefs is New Zealand’s founding document. In 1893 it became the first self-governing country to give women the vote.','New Zealand is a close partner of Australia and a member of the Five Eyes intelligence alliance; trade with China and climate policy are recurring issues.'],
+          timeline:[{year:'1840',event:'Treaty of Waitangi.'},{year:'1865',event:'Wellington becomes the capital.'},{year:'1893',event:'Women win the vote.'},{year:'1947',event:'Full self-government adopted.'},{year:'2019',event:'Christchurch mosque attacks.'}]}},
+
+      {id:'kathmandu',name:'Kathmandu',country:'Nepal',region:'South Asia',coords:'27.7°N, 85.3°E',lat:27.72,lng:85.32,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Kathmandu is the capital of Nepal, a Himalayan republic between India and China.',
+          paragraphs:['A Maoist insurgency from 1996 ended with a 2006 peace agreement, and the monarchy was abolished in 2008. A 2015 earthquake killed nearly 9,000 people.','In September 2025, youth-led protests against a social-media ban and corruption brought down the government.'],
+          timeline:[{year:'1768',event:'Unification under Prithvi Narayan Shah.'},{year:'1996',event:'Maoist insurgency begins.'},{year:'2008',event:'Monarchy abolished.'},{year:'2015',event:'Earthquake.'},{year:'2025',event:'Youth-led protests topple the government.'}]}},
+
+      {id:'nuuk',name:'Nuuk',country:'Greenland',region:'Arctic',coords:'64.2°N, 51.7°W',lat:64.18,lng:-51.69,importance:0.6,
+        blurb:'No stories in the July 2026 snapshot.',news:[],
+        history:{intro:'Nuuk is the capital of Greenland, the world’s largest island and a self-governing territory within the Kingdom of Denmark.',
+          paragraphs:['Greenland was a Danish colony until 1953. It gained home rule in 1979 and expanded self-government in 2009, including the right to pursue independence.','Its Arctic position and mineral resources make it strategically important; US calls to acquire the island have strained relations with Denmark.'],
+          timeline:[{year:'1721',event:'Danish colonisation begins.'},{year:'1953',event:'Colonial status ends.'},{year:'1979',event:'Home rule.'},{year:'2009',event:'Self-government act.'},{year:'2025',event:'US pressure over the island’s status intensifies.'}]}}
     ];
   }
 
@@ -1070,7 +1215,9 @@ class Component extends DCLogic {
     {id:'kashmir',color:'#4dd0e6',ids:['islamabad','delhi','taipei']},
     {id:'trade',color:'#4d90e6',ids:['dc','toronto','mexico']}
   ];
-  LEAN = {'NPR':'c','NPR World':'c','CNN':'c','Euronews':'c','Fox News':'r','Bloomberg':'c','Al Jazeera':'i','Punch NG':'i','Times of Israel':'c','UN Security Council Report':'o','ACLED':'o','ESPN':'o','Rio Times':'i','CBC News':'c','TIME':'c','CS Monitor':'c','U.S. News':'c','The Defense Post':'o','Yahoo Sports':'o','CBS Sports':'o','UEFA':'o','Inquirer':'i','BERNAMA':'i','PACNEWS / AFP':'i'};
+  LEAN = {'NPR':'c','NPR World':'c','CNN':'c','Euronews':'c','Fox News':'r','Bloomberg':'c','Al Jazeera':'i','Punch NG':'i','Times of Israel':'c','UN Security Council Report':'o','ACLED':'o','ESPN':'o','Rio Times':'i','CBC News':'c','TIME':'c','CS Monitor':'c','U.S. News':'c','The Defense Post':'o','Yahoo Sports':'o','CBS Sports':'o','UEFA':'o','Inquirer':'i','BERNAMA':'i','PACNEWS / AFP':'i',
+    'BBC News':'c','The Guardian':'c','The New York Times':'c','DW':'c','France 24':'c','Sky News':'c','ABC News (AU)':'c',
+    'The Japan Times':'i','South China Morning Post':'i','The Hindu':'i','Dawn':'i','The Kyiv Independent':'i','MercoPress':'i','Yonhap':'i','The Daily Star':'i','AllAfrica':'i','Rappler':'i','Mexico News Daily':'i','Buenos Aires Times':'i','Taipei Times':'i'};
   LEANMETA = {c:{label:'Broadsheet / broadcast',color:'#9fb4d0'},r:{label:'Right-leaning',color:'#e5654d'},l:{label:'Left-leaning',color:'#4d90e6'},i:{label:'International',color:'#a98de6'},o:{label:'Official / specialist',color:'#5de08f'}};
 
   componentDidMount(){
@@ -1117,6 +1264,10 @@ class Component extends DCLogic {
         return Object.assign({},l,{news, blurb: news.length ? 'Live coverage from '+outlets+' outlet'+(outlets===1?'':'s')+', refreshed hourly.' : 'No corroborated coverage in the past week.'});
       });
       if(!data.some(l=>l.news.length)) return;
+      // Size and "major story" pulse follow this week's coverage volume, not the snapshot's curated weights.
+      const weight=l=>l.news.reduce((s,n)=>s+n.sources.length,0);
+      const maxW=Math.max(1,...data.map(weight));
+      data.forEach(l=>{ if(l.news.length) l.importance=0.45+0.53*Math.sqrt(weight(l)/maxW); });
       this._data=data;
       this._links=(Array.isArray(f.links)?f.links:[]).filter(k=>k&&isStr(k.a)&&isStr(k.b)&&this.CATS[k.cat]);
       this.NOW=new Date();
@@ -1493,7 +1644,7 @@ class Component extends DCLogic {
         id:n.id, catLabel:CATS[n.cat].label, catColor:CATS[n.cat].color,
         rel:this.fmtRel(n.date), abs:this.fmtAbs(n.date), title:n.title,
         paras:n.detail, sources:n.sources, opacity,
-        leanSegs, srcCount:n.sources.length,
+        leanSegs, srcCount:n.sources.length, srcNoun:n.sources.length===1?'source':'sources',
         facts:this.firstSentence(n.detail[0]), factsOn, showFacts:factsOn, showFull:!factsOn,
         onFacts:(e)=>{ e.stopPropagation(); this.toggleFacts(n.id); },
         factsBtnColor: factsOn?'#5fd8b4':'#7089aa', fullBtnColor: factsOn?'#7089aa':'#5fd8b4',

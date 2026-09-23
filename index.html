@@ -74,9 +74,9 @@ a:hover{color:#18856a}
           <a href="#how" style="border:1px solid #14181d;color:#14181d;font-size:15.5px;padding:15px 24px;border-radius:2px;text-align:center;flex:1 1 auto;min-width:190px" style-hover="background:#14181d;color:#f7f4ed">See how it works</a>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:clamp(18px,5vw,34px);margin-top:34px;padding-top:22px;border-top:1px solid #c9c2b2;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#6d7683">
-          <div><span style="display:block;font-family:'Newsreader',serif;font-size:clamp(26px,6vw,30px);letter-spacing:-.02em;color:#14181d;text-transform:none">37</span>locations mapped</div>
+          <div><span style="display:block;font-family:'Newsreader',serif;font-size:clamp(26px,6vw,30px);letter-spacing:-.02em;color:#14181d;text-transform:none">61</span>locations mapped</div>
           <div><span style="display:block;font-family:'Newsreader',serif;font-size:clamp(26px,6vw,30px);letter-spacing:-.02em;color:#14181d;text-transform:none">8</span>story categories</div>
-          <div><span style="display:block;font-family:'Newsreader',serif;font-size:clamp(26px,6vw,30px);letter-spacing:-.02em;color:#14181d;text-transform:none">3</span>sources per story, minimum</div>
+          <div><span style="display:block;font-family:'Newsreader',serif;font-size:clamp(26px,6vw,30px);letter-spacing:-.02em;color:#14181d;text-transform:none">35</span>news outlets, checked hourly</div>
         </div>
       </div>
 
@@ -229,7 +229,7 @@ a:hover{color:#18856a}
   <div style="max-width:1200px;margin:clamp(46px,8vw,70px) auto 0;padding:26px clamp(14px,4vw,30px) 40px;border-top:1px solid #14181d;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:baseline;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#6d7683">
     <span style="font-family:'Newsreader',serif;font-size:19px;letter-spacing:-.01em;text-transform:none;color:#14181d">TerraNews</span>
     <span>Coastlines: Natural Earth · Flat map: Equal Earth projection</span>
-    <span>A prototype · news snapshot, not a live feed</span>
+    <span>Refreshed hourly from 35 news outlets</span>
   </div>
 
   <sc-if value="{{ feedback }}" hint-placeholder-val="{{ false }}">
@@ -408,8 +408,8 @@ class Component extends DCLogic {
     const cat = s.cat.charAt(0).toUpperCase() + s.cat.slice(1);
     const faqSrc = [
       {q:'Is it really free?', a:'Yes. Every feature is open to every visitor — no account, no trial, no card. If that ever changes, it will be announced here first, and never applied retroactively to what already works.'},
-      {q:'Where does the news come from?', a:'Each entry is compiled from at least three independent outlets, and the app lists them per story with a source-balance bar showing the mix of wire, national and local reporting.'},
-      {q:'Is this a live feed?', a:'Not yet. The prototype ships a dated snapshot so nothing unverified appears while you browse. Live syndication is the next milestone.'},
+      {q:'Where does the news come from?', a:'From the public news feeds of 35 outlets, checked every hour. Each story lists every outlet that reported it, with a source-balance bar showing the mix, and links to the original reporting.'},
+      {q:'Is this a live feed?', a:'Yes. The globe refreshes hourly and keeps the past seven days, so the time machine can replay the week. The History tabs are written by hand.'},
       {q:'How do you handle bias?', a:'By exposing it rather than hiding it. Every story shows its sources, a "just the facts" toggle strips interpretive language, and disagreements between outlets are stated instead of averaged away.'},
       {q:'Why does the flat map look unfamiliar?', a:'It uses the Equal Earth projection, which preserves relative land area. Mercator maps inflate high latitudes; countries near the equator appear far smaller than they are.'}
     ];
@@ -435,7 +435,7 @@ class Component extends DCLogic {
       tickerItems: [...SPOTS, ...SPOTS].map((x, i) => ({key:i, color:CAT[x.cat], label:x.c + ' — ' + x.cat})),
       steps: [
         {num:'1', title:'Spin and scan', body:'Pulsing rings mark the major stories. Colour tells you the category before you read a word.'},
-        {num:'2', title:'Click a place', body:'Any of 37 locations opens its dossier: current stories newest-first, plus the history that makes them legible.'},
+        {num:'2', title:'Click a place', body:'Any of 61 locations opens its dossier: current stories newest-first, plus the history that makes them legible.'},
         {num:'3', title:'Follow the thread', body:'Arcs link related events across continents. Turn on the heat map, or scrub back through the week.'}
       ],
       features: [
@@ -453,7 +453,7 @@ class Component extends DCLogic {
         {tag:'Reading', color:CAT.business, title:'Guided tour', body:'A spotlight walkthrough of every control, on demand.'}
       ],
       method: [
-        {k:'01', title:'Three sources, minimum', body:'No story enters the globe on a single report. Each is corroborated across independent outlets before it is placed.'},
+        {k:'01', title:'Every source, shown', body:'Each story lists every outlet that reported it and links to the original. When several outlets cover the same event, their reports are grouped so you can compare them.'},
         {k:'02', title:'Disagreement is content', body:'Where outlets conflict, the conflict is shown. We do not average two accounts into one confident sentence.'},
         {k:'03', title:'History attached', body:'Every location carries the background needed to read today: what led here, and when it started.'},
         {k:'04', title:'Dated, never vague', body:'Timestamps are explicit and stories fade with age. Nothing pretends to be newer than it is.'}

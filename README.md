@@ -22,7 +22,7 @@ open `globe.html` (with `support.js` alongside it) and it renders.
 
 ## Features
 
-- **Search anywhere** — fly to any of 37 mapped locations by city or country name
+- **Search anywhere** — fly to any of 61 mapped locations by city or country name
 - **Equal Earth flat map** — toggle to a projection that preserves true relative land area
 - **Story arcs & category heat map** — visual links and topic coloring across the globe
 - **Time machine** — scrub the last seven days and replay how stories broke
@@ -33,18 +33,20 @@ open `globe.html` (with `support.js` alongside it) and it renders.
 
 ## Live news
 
-The globe's News tabs are refreshed hourly from the public RSS feeds of 15 outlets (NPR, CNN,
-Al Jazeera, CBC, Euronews, and others). A scheduled GitHub Action
+The globe's News tabs are refreshed hourly from the public RSS feeds of 35 outlets (BBC, NPR,
+Al Jazeera, The Guardian, DW, France 24, and regional outlets across Africa, Asia and Latin
+America). A scheduled GitHub Action
 ([`.github/workflows/news-feed.yml`](./.github/workflows/news-feed.yml)) runs the pipeline in
 [`feed/`](./feed), which:
 
 1. fetches each outlet's feed,
-2. matches articles to the 37 mapped locations by name,
+2. matches articles to the 61 mapped locations by name,
 3. groups articles about the same event across outlets into one story,
-4. publishes only stories reported by at least two different outlets,
-5. writes `feed.json` (read by `globe.html`) and a rolling seven-day archive in `data/`.
+4. writes `feed.json` (read by `globe.html`) and a rolling seven-day archive in `data/`.
 
-Each story links out to every outlet that covered it. The History tabs remain hand-written. If
+Each story links out to every outlet that covered it, and the source count shows how widely it
+was reported. Hotspot size and the "major story" pulse follow each place's coverage that week.
+The History tabs remain hand-written. If
 `feed.json` is missing or invalid, `globe.html` falls back to its built-in July 2026 snapshot.
 
 ## Development

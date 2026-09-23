@@ -2,7 +2,7 @@ import { LOCATIONS, CATEGORIES, WINDOW_DAYS, MAX_STORIES_PER_LOCATION, MAX_ARCHI
 
 const DAY = 86_400_000;
 const CLUSTER_WINDOW_MS = 48 * 3_600_000;
-const CLUSTER_MIN_SIMILARITY = 0.32;
+const CLUSTER_MIN_SIMILARITY = 0.2;
 const MIN_LINK_COUNT = 2;
 const MAX_LINKS = 40;
 
@@ -105,7 +105,7 @@ export function mergeArchive(prev, fresh, now) {
   return [...byLink.values()].sort((a, b) => b.date - a.date).slice(0, MAX_ARCHIVE_ITEMS);
 }
 
-const STOP = new Set('the and for with from that this after over into amid says said will have has had are was were been its their they them his her who what when where why how not but new more than about just also out off one two year years day days week weeks'.split(' '));
+const STOP = new Set('the and for with from that this after over into amid says said will have has had are was were been its their they them his her who what when where why how not but new more than about just also out off one two year years day days week weeks live latest update updates news'.split(' '));
 // Crude suffix stripping so killed/kills/killing, Russia/Russian and Ukraine/Ukrainian compare equal.
 function stem(w) {
   if (w.length > 4 && w.endsWith('s') && !w.endsWith('ss')) w = w.slice(0, -1);
@@ -117,21 +117,33 @@ function stem(w) {
   if (w.length > 5 && w.endsWith('i')) w = w.slice(0, -1);
   return w;
 }
-const tokens = s => (s.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || []).filter(w => !STOP.has(w)).map(stem);
+// Two-letter all-caps words (UN, US, EU, AI) are kept: they are often the most distinctive terms in a headline.
+const tokens = s => (s.match(/[\p{L}\p{N}]+/gu) || [])
+  .filter(w => w.length >= 3 || /^[A-Z]{2}$/.test(w))
+  .map(w => w.toLowerCase())
+  .filter(w => !STOP.has(w))
+  .map(stem);
+
+// Headlines drive similarity; descriptions vary far more between outlets, so they only nudge it.
+const DESC_WEIGHT = 0.3;
 
 function vectors(items) {
-  const docs = items.map(it => [...tokens(it.title), ...tokens(it.title), ...tokens(it.desc).slice(0, 40)]);
+  const docs = items.map(it => {
+    const tf = new Map();
+    for (const w of tokens(it.title)) tf.set(w, (tf.get(w) || 0) + 1);
+    for (const w of tokens(it.desc).slice(0, 25)) tf.set(w, (tf.get(w) || 0) + DESC_WEIGHT);
+    return tf;
+  });
   const df = new Map();
-  for (const d of docs) for (const w of new Set(d)) df.set(w, (df.get(w) || 0) + 1);
+  for (const d of docs) for (const w of d.keys()) df.set(w, (df.get(w) || 0) + 1);
   const n = docs.length;
   return docs.map(d => {
-    const tf = new Map();
-    for (const w of d) tf.set(w, (tf.get(w) || 0) + 1);
+    const v = new Map();
     let norm = 0;
-    for (const [w, c] of tf) { const v = c * (Math.log((n + 1) / (df.get(w) + 1)) + 1); tf.set(w, v); norm += v * v; }
+    for (const [w, c] of d) { const x = c * Math.log((n + 1) / (df.get(w) + 1) + 1); v.set(w, x); norm += x * x; }
     norm = Math.sqrt(norm) || 1;
-    for (const [w, v] of tf) tf.set(w, v / norm);
-    return tf;
+    for (const [w, x] of v) v.set(w, x / norm);
+    return v;
   });
 }
 
@@ -142,22 +154,38 @@ function cosine(a, b) {
   return dot;
 }
 
+// Average-linkage agglomeration: two groups merge only if their members are similar on average,
+// so one loosely-related headline cannot chain unrelated stories together.
 export function cluster(items) {
+  const n = items.length;
   const vec = vectors(items);
-  const parent = items.map((_, i) => i);
-  const find = i => (parent[i] === i ? i : (parent[i] = find(parent[i])));
-  const sim = items.map(() => new Float64Array(items.length));
-  for (let i = 0; i < items.length; i++) {
-    for (let j = i + 1; j < items.length; j++) {
+  const sim = items.map(() => new Float64Array(n));
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
       if (Math.abs(items[i].date - items[j].date) > CLUSTER_WINDOW_MS) continue;
-      const c = cosine(vec[i], vec[j]);
-      sim[i][j] = sim[j][i] = c;
-      if (c >= CLUSTER_MIN_SIMILARITY) parent[find(i)] = find(j);
+      sim[i][j] = sim[j][i] = cosine(vec[i], vec[j]);
     }
   }
-  const groups = new Map();
-  items.forEach((_, i) => { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(i); });
-  return [...groups.values()].map(idx => {
+  const link = sim.map(row => Float64Array.from(row));
+  const size = new Array(n).fill(1);
+  const groups = items.map((_, i) => [i]);
+  const alive = new Array(n).fill(true);
+  for (;;) {
+    let best = -1, bi = -1, bj = -1;
+    for (let i = 0; i < n; i++) {
+      if (!alive[i]) continue;
+      for (let j = i + 1; j < n; j++) if (alive[j] && link[i][j] > best) { best = link[i][j]; bi = i; bj = j; }
+    }
+    if (bi < 0 || best < CLUSTER_MIN_SIMILARITY) break;
+    for (let k = 0; k < n; k++) {
+      if (!alive[k] || k === bi || k === bj) continue;
+      link[bi][k] = link[k][bi] = (size[bi] * link[bi][k] + size[bj] * link[bj][k]) / (size[bi] + size[bj]);
+    }
+    size[bi] += size[bj];
+    groups[bi].push(...groups[bj]);
+    alive[bj] = false;
+  }
+  return groups.filter((_, i) => alive[i]).map(idx => {
     let medoid = idx[0], best = -1;
     for (const i of idx) { let s = 0; for (const j of idx) s += sim[i][j]; if (s > best) { best = s; medoid = i; } }
     return { members: idx.map(i => items[i]), medoid: items[medoid] };

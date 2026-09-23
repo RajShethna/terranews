@@ -63,6 +63,12 @@ test('location matching avoids known false positives', () => {
   assert.ok(matchLocations('Lula meets investors in Brasília', '').includes('brasilia'));
   const gaza = matchLocations('Israeli strikes on Gaza', 'Israel pressed strikes across Gaza.');
   assert.ok(gaza.includes('gaza') && gaza.includes('jerusalem'));
+  assert.deepEqual(matchLocations('Michael Jordan returns to Chicago', ''), []);
+  assert.ok(matchLocations('Jordan hosts regional summit', '').includes('amman'));
+  assert.ok(!matchLocations('South Sudan clashes displace thousands', '').includes('khartoum'));
+  assert.ok(matchLocations('Sudan army retakes Khartoum airport', '').includes('khartoum'));
+  assert.deepEqual(matchLocations('Pilgrims flock to Santiago de Compostela', ''), []);
+  assert.ok(matchLocations('EU agrees new sanctions package', '').includes('brussels'));
 });
 
 test('classify picks sensible categories', () => {

@@ -29,7 +29,7 @@ jobs:
 
       - name: Fetch outlets and build feed.json
         env:
-          MIN_SOURCES: 2
+          MIN_SOURCES: 1
         run: node feed/src/build.mjs
 
       - name: Commit when new articles arrived

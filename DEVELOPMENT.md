@@ -76,7 +76,8 @@ regression and investigate before deploying.
   "official / specialist".
 - **Location ids** in `LOCATIONS` must match the `id`s in `globe.html`'s `DATA`. Adding a
   location means adding it in both places.
-- **Corroboration threshold** is `MIN_SOURCES` in the workflow (currently 2). The build log
+- **Corroboration threshold** is `MIN_SOURCES` in the workflow (currently 1: every matched
+  story is published, and multi-outlet stories show a higher source count). The build log
   prints how many stories would be published at 1, 2 and 3 sources — check it before changing.
 - **If every outlet fails**, the build exits non-zero and writes nothing, so a network blip
   never blanks the globe.
