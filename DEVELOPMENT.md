@@ -69,7 +69,13 @@ regression and investigate before deploying.
 
 `.github/workflows/news-feed.yml` runs hourly (and on demand from the Actions tab via
 **Run workflow**). It runs `feed/`'s tests, then `node feed/src/build.mjs`, and commits
-`feed.json` + `data/archive.json` only when new articles arrived. Netlify deploys each commit.
+`feed.json` + `data/archive.json` only when new articles arrived.
+
+- **Netlify credits:** every production deploy costs credits, so the bot's commits say
+  `[skip netlify]` and `globe.html` reads the feed from `raw.githubusercontent.com` instead of the
+  deployed site (`FEED_URLS`). That only works while the repo is public. Your own pushes still
+  deploy and cost credits — batch site changes into fewer pushes, and add `[skip netlify]` to
+  commits that don't change the site (docs, `feed/` code, the workflow).
 
 - **Outlets, location keywords, category keywords** live in `feed/src/config.js`. Outlet
   `name`s must match keys in `LEAN` in `globe.html`, or the source-balance bar files them as

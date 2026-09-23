@@ -475,8 +475,9 @@ class Component extends DCLogic {
   ];
   globeRef = React.createRef();
   NOW = new Date('2026-07-13T20:00:00Z');
-  // Built hourly by .github/workflows/news-feed.yml (see feed/). If it is missing or invalid, the curated July snapshot below is shown.
-  FEED_URL = 'feed.json';
+  // Built hourly by .github/workflows/news-feed.yml (see feed/) and read from GitHub, so refreshes need no Netlify deploy.
+  // Tried in order: GitHub, then the copy deployed with the site; if both fail, the curated July snapshot below is shown.
+  FEED_URLS = ['https://raw.githubusercontent.com/RajShethna/terranews/main/feed.json', 'feed.json'];
   nameMap = {'United States of America':'dc','Ukraine':'kyiv','Russia':'moscow','Iran':'tehran','France':'paris','United Kingdom':'london','China':'beijing','India':'delhi','Japan':'tokyo','Nigeria':'lagos','Venezuela':'caracas','Israel':'jerusalem','Palestine':'gaza','Syria':'damascus','Lebanon':'beirut','Turkey':'ankara','Türkiye':'ankara','Iraq':'baghdad','Qatar':'doha','Germany':'berlin','Spain':'madrid','Brazil':'brasilia','Argentina':'buenosaires','Peru':'lima','Mexico':'mexico','Canada':'toronto','Morocco':'rabat','Egypt':'cairo','South Korea':'seoul','Australia':'sydney','South Africa':'joburg','Indonesia':'jakarta','Philippines':'manila','Pakistan':'islamabad','Taiwan':'taipei','Sri Lanka':'colombo','Bangladesh':'dhaka','Saudi Arabia':'riyadh','Yemen':'sanaa','Jordan':'amman','Afghanistan':'kabul','Kenya':'nairobi','Ethiopia':'addis','Sudan':'khartoum','Dem. Rep. Congo':'kinshasa','Ghana':'accra','Italy':'rome','Poland':'warsaw','Belgium':'brussels','Colombia':'bogota','Chile':'santiago','Cuba':'havana','Haiti':'portauprince','Thailand':'bangkok','Vietnam':'hanoi','Myanmar':'yangon','North Korea':'pyongyang','New Zealand':'wellington','Nepal':'kathmandu','Greenland':'nuuk'};
   CATS = {
     politics:{label:'Politics',color:'#e6b34d'},
@@ -1234,7 +1235,7 @@ class Component extends DCLogic {
     if(!seen) this.scheduleMeasure();
     this._onHash=()=>{ const id=this.readHash(); if(id) this.selectLocation(id,true); };
     window.addEventListener('hashchange', this._onHash);
-    if(this.FEED_URL) this.loadFeed();
+    this.loadFeed();
   }
   componentWillUnmount(){ window.removeEventListener('resize', this._onResize); window.removeEventListener('hashchange', this._onHash); clearTimeout(this._t); }
   componentDidUpdate(){
@@ -1246,12 +1247,13 @@ class Component extends DCLogic {
   }
   readHash(){ const m=(typeof location!=='undefined'&&location.hash||'').match(/loc=([a-z]+)/i); return m?m[1]:null; }
   // Feed text is untrusted: validate shape, keep only http(s) links. Any failure leaves the curated snapshot in place.
-  async loadFeed(){
+  async loadFeed(){ for(const url of this.FEED_URLS){ if(await this.tryFeed(url)) return; } }
+  async tryFeed(url){
     try{
-      const r=await fetch(this.FEED_URL,{cache:'no-cache'});
-      if(!r.ok) return;
+      const r=await fetch(url,{cache:'no-cache'});
+      if(!r.ok) return false;
       const f=await r.json();
-      if(!f || typeof f.locations!=='object' || !f.locations) return;
+      if(!f || typeof f.locations!=='object' || !f.locations) return false;
       const isStr=v=>typeof v==='string'&&v.length>0;
       const okUrl=u=>isStr(u)&&/^https?:\/\//i.test(u);
       const data=this.DATA.map(l=>{
@@ -1263,7 +1265,7 @@ class Component extends DCLogic {
         const outlets=new Set(news.flatMap(n=>n.sources.map(s=>s.name))).size;
         return Object.assign({},l,{news, blurb: news.length ? 'Live coverage from '+outlets+' outlet'+(outlets===1?'':'s')+', refreshed hourly.' : 'No corroborated coverage in the past week.'});
       });
-      if(!data.some(l=>l.news.length)) return;
+      if(!data.some(l=>l.news.length)) return false;
       // Size and "major story" pulse follow this week's coverage volume, not the snapshot's curated weights.
       const weight=l=>l.news.reduce((s,n)=>s+n.sources.length,0);
       const maxW=Math.max(1,...data.map(weight));
@@ -1275,7 +1277,8 @@ class Component extends DCLogic {
       this.minDate=Math.min(this.maxDate, ...data.flatMap(l=>l.news.map(n=>new Date(n.date).getTime())));
       this.setState({live:true, scrub:null, expandedId:null});
       this.refreshGlobe();
-    }catch(e){}
+      return true;
+    }catch(e){ return false; }
   }
   esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 

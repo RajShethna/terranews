@@ -42,12 +42,16 @@ America). A scheduled GitHub Action
 1. fetches each outlet's feed,
 2. matches articles to the 61 mapped locations by name,
 3. groups articles about the same event across outlets into one story,
-4. writes `feed.json` (read by `globe.html`) and a rolling seven-day archive in `data/`.
+4. writes `feed.json` and a rolling seven-day archive in `data/`, and commits them.
+
+`globe.html` reads `feed.json` straight from this repository on GitHub, so refreshes don't need
+a new Netlify deploy; the bot's commits are marked `[skip netlify]` and cost no Netlify credits.
+This relies on the repository being **public**. If GitHub can't be reached, the globe uses the
+copy of `feed.json` deployed with the site, and failing that, its built-in July 2026 snapshot.
 
 Each story links out to every outlet that covered it, and the source count shows how widely it
 was reported. Hotspot size and the "major story" pulse follow each place's coverage that week.
-The History tabs remain hand-written. If
-`feed.json` is missing or invalid, `globe.html` falls back to its built-in July 2026 snapshot.
+The History tabs remain hand-written.
 
 ## Development
 
