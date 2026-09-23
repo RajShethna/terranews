@@ -31,8 +31,21 @@ open `globe.html` (with `support.js` alongside it) and it renders.
 - **AI situational brief** — a short, clearly-labeled, unverified synthesis on request
 - **Bookmarks & follows, day/night terminator, guided tour** — stored locally in your browser
 
-It's a prototype: a dated news snapshot, not a live feed, corroborated across at least three
-sources per story.
+## Live news
+
+The globe's News tabs are refreshed hourly from the public RSS feeds of 15 outlets (NPR, CNN,
+Al Jazeera, CBC, Euronews, and others). A scheduled GitHub Action
+([`.github/workflows/news-feed.yml`](./.github/workflows/news-feed.yml)) runs the pipeline in
+[`feed/`](./feed), which:
+
+1. fetches each outlet's feed,
+2. matches articles to the 37 mapped locations by name,
+3. groups articles about the same event across outlets into one story,
+4. publishes only stories reported by at least two different outlets,
+5. writes `feed.json` (read by `globe.html`) and a rolling seven-day archive in `data/`.
+
+Each story links out to every outlet that covered it. The History tabs remain hand-written. If
+`feed.json` is missing or invalid, `globe.html` falls back to its built-in July 2026 snapshot.
 
 ## Development
 

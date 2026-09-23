@@ -64,3 +64,24 @@ responsiveness pass already applied to these files:
 
 If a *future* run flags something beyond these two categories, treat it as a real
 regression and investigate before deploying.
+
+## Live news feed
+
+`.github/workflows/news-feed.yml` runs hourly (and on demand from the Actions tab via
+**Run workflow**). It runs `feed/`'s tests, then `node feed/src/build.mjs`, and commits
+`feed.json` + `data/archive.json` only when new articles arrived. Netlify deploys each commit.
+
+- **Outlets, location keywords, category keywords** live in `feed/src/config.js`. Outlet
+  `name`s must match keys in `LEAN` in `globe.html`, or the source-balance bar files them as
+  "official / specialist".
+- **Location ids** in `LOCATIONS` must match the `id`s in `globe.html`'s `DATA`. Adding a
+  location means adding it in both places.
+- **Corroboration threshold** is `MIN_SOURCES` in the workflow (currently 2). The build log
+  prints how many stories would be published at 1, 2 and 3 sources — check it before changing.
+- **If every outlet fails**, the build exits non-zero and writes nothing, so a network blip
+  never blanks the globe.
+- **Tests:** `cd feed && node --test`. They run in the workflow before every build.
+
+`feed.json` is untrusted input to `globe.html`: `loadFeed()` validates each story, drops any
+non-http(s) link, and the hover tooltip (the only place globe.gl renders raw HTML) escapes
+every field via `esc()`. Keep both if you change either side.

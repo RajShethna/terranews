@@ -1,0 +1,45 @@
+name: Refresh news feed
+
+on:
+  schedule:
+    - cron: '17 * * * *' # hourly; off the top of the hour, when GitHub's scheduler is busiest
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: news-feed
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test pipeline
+        working-directory: feed
+        run: node --test
+
+      - name: Fetch outlets and build feed.json
+        env:
+          MIN_SOURCES: 2
+        run: node feed/src/build.mjs
+
+      - name: Commit when new articles arrived
+        run: |
+          git add feed.json data/archive.json
+          if git diff --cached --quiet -- data/archive.json; then
+            echo "No new articles since the last run; skipping commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh news feed"
+          git push || { git pull --rebase origin main && git push; }

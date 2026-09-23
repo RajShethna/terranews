@@ -475,6 +475,8 @@ class Component extends DCLogic {
   ];
   globeRef = React.createRef();
   NOW = new Date('2026-07-13T20:00:00Z');
+  // Built hourly by .github/workflows/news-feed.yml (see feed/). If it is missing or invalid, the curated July snapshot below is shown.
+  FEED_URL = 'feed.json';
   nameMap = {'United States of America':'dc','Ukraine':'kyiv','Russia':'moscow','Iran':'tehran','France':'paris','United Kingdom':'london','China':'beijing','India':'delhi','Japan':'tokyo','Nigeria':'lagos','Venezuela':'caracas','Israel':'jerusalem','Palestine':'gaza','Syria':'damascus','Lebanon':'beirut','Turkey':'ankara','Türkiye':'ankara','Iraq':'baghdad','Qatar':'doha','Germany':'berlin','Spain':'madrid','Brazil':'brasilia','Argentina':'buenosaires','Peru':'lima','Mexico':'mexico','Canada':'toronto','Morocco':'rabat','Egypt':'cairo','South Korea':'seoul','Australia':'sydney','South Africa':'joburg','Indonesia':'jakarta','Philippines':'manila','Pakistan':'islamabad','Taiwan':'taipei','Sri Lanka':'colombo','Bangladesh':'dhaka'};
   CATS = {
     politics:{label:'Politics',color:'#e6b34d'},
@@ -1085,6 +1087,7 @@ class Component extends DCLogic {
     if(!seen) this.scheduleMeasure();
     this._onHash=()=>{ const id=this.readHash(); if(id) this.selectLocation(id,true); };
     window.addEventListener('hashchange', this._onHash);
+    if(this.FEED_URL) this.loadFeed();
   }
   componentWillUnmount(){ window.removeEventListener('resize', this._onResize); window.removeEventListener('hashchange', this._onHash); clearTimeout(this._t); }
   componentDidUpdate(){
@@ -1095,6 +1098,35 @@ class Component extends DCLogic {
     this.refreshGlobe();
   }
   readHash(){ const m=(typeof location!=='undefined'&&location.hash||'').match(/loc=([a-z]+)/i); return m?m[1]:null; }
+  // Feed text is untrusted: validate shape, keep only http(s) links. Any failure leaves the curated snapshot in place.
+  async loadFeed(){
+    try{
+      const r=await fetch(this.FEED_URL,{cache:'no-cache'});
+      if(!r.ok) return;
+      const f=await r.json();
+      if(!f || typeof f.locations!=='object' || !f.locations) return;
+      const isStr=v=>typeof v==='string'&&v.length>0;
+      const okUrl=u=>isStr(u)&&/^https?:\/\//i.test(u);
+      const data=this.DATA.map(l=>{
+        const raw=Array.isArray(f.locations[l.id])?f.locations[l.id]:[];
+        const news=raw
+          .filter(n=>n&&isStr(n.id)&&this.CATS[n.cat]&&isStr(n.title)&&!isNaN(new Date(n.date))&&Array.isArray(n.detail)&&n.detail.length&&n.detail.every(isStr)&&Array.isArray(n.sources))
+          .map(n=>({id:n.id,cat:n.cat,date:n.date,title:n.title,detail:n.detail,sources:n.sources.filter(s=>s&&isStr(s.name)&&okUrl(s.url)).map(s=>({name:s.name,url:s.url}))}))
+          .filter(n=>n.sources.length);
+        const outlets=new Set(news.flatMap(n=>n.sources.map(s=>s.name))).size;
+        return Object.assign({},l,{news, blurb: news.length ? 'Live coverage from '+outlets+' outlet'+(outlets===1?'':'s')+', refreshed hourly.' : 'No corroborated coverage in the past week.'});
+      });
+      if(!data.some(l=>l.news.length)) return;
+      this._data=data;
+      this._links=(Array.isArray(f.links)?f.links:[]).filter(k=>k&&isStr(k.a)&&isStr(k.b)&&this.CATS[k.cat]);
+      this.NOW=new Date();
+      this.maxDate=this.NOW.getTime();
+      this.minDate=Math.min(this.maxDate, ...data.flatMap(l=>l.news.map(n=>new Date(n.date).getTime())));
+      this.setState({live:true, scrub:null, expandedId:null});
+      this.refreshGlobe();
+    }catch(e){}
+  }
+  esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   hexA(hex,a){ const n=parseInt(hex.slice(1),16); const r=(n>>16)&255,g=(n>>8)&255,b=n&255; return `rgba(${r},${g},${b},${a})`; }
   cutoffDate(){ return this.state.scrub ? new Date(this.state.scrub) : this.NOW; }
@@ -1112,7 +1144,7 @@ class Component extends DCLogic {
       .pointsData([]).pointLat('lat').pointLng('lng').pointColor('color')
       .pointAltitude(d=>0.01+d.importance*0.055).pointRadius(d=>0.3+d.importance*0.25)
       .pointResolution(20).pointsMerge(false)
-      .pointLabel(d=>`<div style="font-family:'Space Grotesk',sans-serif;background:rgba(6,12,22,.94);border:1px solid rgba(120,160,210,.3);padding:9px 12px;border-radius:9px;max-width:236px;color:#e8eef7;box-shadow:0 10px 34px rgba(0,0,0,.55)"><div style="font-size:9px;letter-spacing:.14em;color:${d.color};text-transform:uppercase;font-family:'IBM Plex Mono',monospace">${d.country}</div><div style="font-weight:600;font-size:14px;margin:3px 0 5px">${d.name}</div><div style="font-size:11.5px;line-height:1.4;color:#9fb4d0;font-family:'Newsreader',serif">${d.headline}</div><div style="margin-top:7px;font-size:9px;color:${d.color};font-family:'IBM Plex Mono',monospace">CLICK TO OPEN ▸</div></div>`)
+      .pointLabel(d=>`<div style="font-family:'Space Grotesk',sans-serif;background:rgba(6,12,22,.94);border:1px solid rgba(120,160,210,.3);padding:9px 12px;border-radius:9px;max-width:236px;color:#e8eef7;box-shadow:0 10px 34px rgba(0,0,0,.55)"><div style="font-size:9px;letter-spacing:.14em;color:${d.color};text-transform:uppercase;font-family:'IBM Plex Mono',monospace">${this.esc(d.country)}</div><div style="font-weight:600;font-size:14px;margin:3px 0 5px">${this.esc(d.name)}</div><div style="font-size:11.5px;line-height:1.4;color:#9fb4d0;font-family:'Newsreader',serif">${this.esc(d.headline)}</div><div style="margin-top:7px;font-size:9px;color:${d.color};font-family:'IBM Plex Mono',monospace">CLICK TO OPEN ▸</div></div>`)
       .onPointClick(d=>this.selectLocation(d.id))
       .ringLat('lat').ringLng('lng')
       .ringColor(d=>{const c=d.color; return t=>this.hexA(c, Math.max(0,1-t)*0.72);})
@@ -1145,15 +1177,20 @@ class Component extends DCLogic {
       const has=id=>active.find(a=>a.l.id===id);
       const pos=id=>DATA.find(d=>d.id===id);
       const selId=this.state.selectedId;
-      this.CLUSTERS.forEach(cl=>{
-        const ids=cl.ids.filter(has); const hub=ids[0]; if(!hub) return;
-        ids.slice(1).forEach(id=>{
-          const a=pos(hub), b=pos(id); if(!a||!b) return;
-          const touch = selId && (id===selId||hub===selId);
-          const dim = selId && !touch;
-          arcs.push({sLat:a.lat,sLng:a.lng,eLat:b.lat,eLng:b.lng,color: dim?this.hexA(cl.color,0.05):this.hexA(cl.color, touch?0.95:0.3)});
+      const addArc=(fromId,toId,color)=>{
+        const a=pos(fromId), b=pos(toId); if(!a||!b) return;
+        const touch = selId && (toId===selId||fromId===selId);
+        const dim = selId && !touch;
+        arcs.push({sLat:a.lat,sLng:a.lng,eLat:b.lat,eLng:b.lng,color: dim?this.hexA(color,0.05):this.hexA(color, touch?0.95:0.3)});
+      };
+      if(this._links){
+        this._links.forEach(k=>{ if(has(k.a)&&has(k.b)) addArc(k.a,k.b,CATS[k.cat].color); });
+      } else {
+        this.CLUSTERS.forEach(cl=>{
+          const ids=cl.ids.filter(has); const hub=ids[0]; if(!hub) return;
+          ids.slice(1).forEach(id=>addArc(hub,id,cl.color));
         });
-      });
+      }
     }
     g.arcsData(arcs);
     if(this._feats) this.paintPolys();
@@ -1316,7 +1353,7 @@ class Component extends DCLogic {
     if(!(window.claude && window.claude.complete)){ this.showToast('AI refresh unavailable in this environment'); return; }
     const l=this._data.find(x=>x.id===id); if(!l) return;
     this.setState({aiLoading:true});
-    const prompt='You are a strictly neutral wire-service editor. In 3 concise sentences, give an unbiased, high-level situational brief on why '+l.name+', '+l.country+' is in the news around mid-July 2026. Do NOT invent specific statistics, casualty numbers, quotes, or breaking claims; describe themes only and remind the reader to verify specifics against the cited sources. Plain text, no preamble.';
+    const prompt='You are a strictly neutral wire-service editor. In 3 concise sentences, give an unbiased, high-level situational brief on why '+l.name+', '+l.country+' is in the news around '+this.NOW.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'. Do NOT invent specific statistics, casualty numbers, quotes, or breaking claims; describe themes only and remind the reader to verify specifics against the cited sources. Plain text, no preamble.';
     try{ const r=await window.claude.complete(prompt); this.setState(s=>({aiById:Object.assign({},s.aiById,{[id]:(r||'').trim()}),aiLoading:false})); }
     catch(e){ this.setState({aiLoading:false}); this.showToast('AI refresh failed'); }
   }
@@ -1351,6 +1388,7 @@ class Component extends DCLogic {
     const CATS=this.CATS, DATA=this._data||this.DATA, st=this.state;
     const sel=DATA.find(l=>l.id===st.selectedId)||null;
     const topNews=l=>{ const nn=this.newsUpTo(l); return nn[0]||[...l.news].sort((a,b)=>new Date(b.date)-new Date(a.date))[0]; };
+    const catColor=l=>{ const n=topNews(l); return n?CATS[n.cat].color:'#5c7396'; };
     const activeLocs=DATA.filter(l=>this.newsUpTo(l).length);
     const topStories=[...activeLocs].sort((a,b)=>b.importance-a.importance).slice(0,7).map(l=>({
       id:l.id,name:l.name,country:l.country,color:CATS[topNews(l).cat].color,headline:topNews(l).title,onClick:()=>this.selectLocation(l.id)
@@ -1360,18 +1398,18 @@ class Component extends DCLogic {
     let results=[];
     if(q){
       results=DATA.filter(l=>(l.name+' '+l.country+' '+l.region).toLowerCase().includes(q)).slice(0,7)
-        .map(l=>({id:l.id,name:l.name,country:l.country,color:CATS[topNews(l).cat].color,onClick:()=>this.selectLocation(l.id)}));
+        .map(l=>({id:l.id,name:l.name,country:l.country,color:catColor(l),onClick:()=>this.selectLocation(l.id)}));
     }
     // bookmarks
     const bmk=st.bookmarks.map(id=>DATA.find(d=>d.id===id)).filter(Boolean).map(l=>({
-      id:l.id,name:l.name,country:l.country,color:CATS[topNews(l).cat].color,
+      id:l.id,name:l.name,country:l.country,color:catColor(l),
       onClick:()=>this.selectLocation(l.id), onRemove:(e)=>{ e.stopPropagation(); this.toggleBookmark(l.id); }
     }));
     // scrubber
     const isLive=!st.scrub;
     const base={
       globeRef:this.globeRef,
-      dateLabel:new Date('2026-07-13T12:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'short',year:'numeric'}),
+      dateLabel:this.NOW.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'short',year:'numeric'}),
       cats:Object.keys(CATS).map(k=>({id:k,label:CATS[k].label,color:CATS[k].color})),
       topStories, hasToast:!!st.toast, toast:st.toast, hasSelection:!!sel,
       stop:(e)=>e.stopPropagation(),
